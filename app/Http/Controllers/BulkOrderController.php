@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\BulkOrder;
 use Illuminate\Support\Facades\Auth;
+use Stripe\Stripe;
+use Stripe\PaymentIntent;
 
 class BulkOrderController extends Controller
 {
@@ -12,7 +14,7 @@ class BulkOrderController extends Controller
     public function index(Request $request)
     {
         // Get all orders of the authenticated user with optional filtering by order status
-        $ordersQuery = BulkOrder::where('user_id', Auth::id());
+        $ordersQuery = BulkOrder::with('user')->where('user_id', Auth::id());
 
         // Optional filter by order status (pending, approved, completed)
         if ($request->has('status')) {
@@ -88,8 +90,6 @@ class BulkOrderController extends Controller
         ]);
 
         // Update the bulk order
-        // Note: We do NOT allow the user to update the price or status here;
-        // only the admin can do that from their dashboard.
         $order->update([
             'cloth_type' => $request->cloth_type,
             'load_kg' => $request->load_kg,
@@ -97,7 +97,7 @@ class BulkOrderController extends Controller
             'load_arrival_time' => $request->load_arrival_time,
             'pickup_date' => $request->pickup_date,
             'pickup_time' => $request->pickup_time,
-            // Retain existing status and price.
+            // Retain existing status and price
             'status' => $order->status,
             'price'  => $order->price,
         ]);
@@ -112,5 +112,56 @@ class BulkOrderController extends Controller
         $order->delete();
 
         return redirect()->route('bulk.orders.index')->with('success', 'Order deleted successfully!');
+    }
+
+    // Display the payment gateway for the bulk order
+    public function paymentGateway($id)
+    {
+        // Fetch the bulk order and pass it to the view
+        $order = BulkOrder::findOrFail($id);
+        return view('bulk_orders.paymentgatewaybulk', compact('order'));
+    }
+
+    // Initiate payment process (create PaymentIntent)
+    public function initiatePayment(Request $request)
+    {
+        // Fetch the bulk order
+        $order = BulkOrder::findOrFail($request->order_id);
+
+        // Set Stripe secret key (make sure it's in your .env file)
+        Stripe::setApiKey(env('STRIPE_SECRET'));
+
+        try {
+            // Create a PaymentIntent
+            $paymentIntent = PaymentIntent::create([
+                'amount' => $order->price * 100, // Convert to cents
+                'currency' => 'usd',
+                'metadata' => ['order_id' => $order->id],
+            ]);
+
+            // Return the client secret to the frontend
+            return response()->json([
+                'clientSecret' => $paymentIntent->client_secret,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    // Handle payment success
+    public function paymentSuccess(Request $request)
+    {
+        $orderId = $request->query('order_id');
+        $order = BulkOrder::findOrFail($orderId);
+
+        // Mark the order as completed
+        $order->status = 'processing';
+        $order->save();
+
+        // Log the payment success for auditing purposes
+        \Log::info("Payment successful for order ID: {$order->id}");
+
+        // Redirect back to the bulk orders index with a success message
+        return redirect()->route('bulk.orders.index')->with('success', 'Payment successful!');
     }
 }

@@ -27,38 +27,39 @@ class LoginController extends Controller
      */
     public function login(Request $request)
     {
-        // Validate the input
+        // Validate input
         $request->validate([
             'email' => 'required|string|email',
             'password' => 'required|string|min:8',
         ]);
-
-        // Attempt to log the user in
+    
+        // Attempt login
         if (Auth::attempt($request->only('email', 'password'))) {
-            // Check the user's account type and redirect accordingly
-            $accountType = Auth::user()->account_type;
-
-            if ($accountType === 'regular') {
-                return redirect()->route('regular.dashboard');
-            } elseif ($accountType === 'bulk') {
-                return redirect()->route('bulk.dashboard');
-            } elseif ($accountType === 'admin') {
-                return redirect()->route('admin.dashboard'); // Redirect to admin dashboard
+            $request->session()->regenerate();
+    
+            // ✅ Check if user was redirected from a QR scan or other custom flow
+            if (session()->has('redirect_after_login')) {
+                $redirect = session()->pull('redirect_after_login');
+                return redirect($redirect);
             }
+    
+            // Fallback: role-based dashboard redirection
+            $accountType = Auth::user()->account_type;
+    
+            return match ($accountType) {
+                'regular' => redirect()->route('regular.dashboard'),
+                'bulk'    => redirect()->route('bulk.dashboard'),
+                'admin'   => redirect()->route('admin.dashboard'),
+                default   => redirect()->route('login')->with('error', 'Invalid account type.'),
+            };
         }
-
-        // Return an error message if authentication fails
+    
+        // Failed login
         throw ValidationException::withMessages([
             'email' => ['The provided credentials are incorrect.'],
         ]);
     }
-
-    /**
-     * Log the user out of the application.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
+    
     public function logout(Request $request)
     {
         // Log out the user

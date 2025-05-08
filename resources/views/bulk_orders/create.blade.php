@@ -4,6 +4,17 @@
     <div class="container mx-auto p-6">
         <h1 class="text-3xl font-semibold text-center mb-6">Create Bulk Order</h1>
 
+        <!-- Display Validation Errors -->
+        @if ($errors->any())
+            <div class="alert alert-danger mb-4">
+                <ul>
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <!-- Bulk Order Form -->
         <form action="{{ route('bulk.orders.store') }}" method="POST">
             @csrf
