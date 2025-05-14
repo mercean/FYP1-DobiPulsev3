@@ -2,16 +2,8 @@
 
 @section('content')
 <div class="flex min-h-screen bg-gray-100 dark:bg-gray-900">
-    <!-- Sidebar -->
-    <aside class="w-64 bg-white dark:bg-gray-800 p-6">
-        <div class="mb-10">
-            <h2 class="text-2xl font-bold text-indigo-600 dark:text-white">Bulk Dashboard</h2>
-        </div>
-        <nav class="space-y-4">
-            <a href="{{ route('bulk.orders.index') }}" class="block text-gray-700 dark:text-gray-300 hover:underline">📦 Check Bulk Orders</a>
-            <a href="{{ route('edit.profile') }}" class="block text-gray-700 dark:text-gray-300 hover:underline">✏️ Edit My Profile</a>
-        </nav>
-    </aside>
+@include('components.bulk.sidebar')
+
 
     <!-- Main Content -->
     <main class="flex-1 p-10">
@@ -21,21 +13,31 @@
             <p class="text-gray-500 dark:text-gray-400">Manage your bulk laundry orders efficiently</p>
         </div>
 
-        <!-- Profile Summary -->
-        <div class="grid md:grid-cols-2 gap-6 mb-10">
-            <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
-                <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">📋 My Profile</h2>
-                <p class="text-gray-600 dark:text-gray-300"><strong>Name:</strong> {{ Auth::user()->name }}</p>
-                <p class="text-gray-600 dark:text-gray-300"><strong>Email:</strong> {{ Auth::user()->email }}</p>
-                <a href="{{ route('edit.profile') }}" class="inline-block mt-4 text-sm text-indigo-600 hover:underline">Edit Profile</a>
-            </div>
+        <!-- Bulk Order Summary Cards -->
+@php
+    $totalBulkOrders = $orders->total();
+    $pendingBulkOrders = $orders->filter(fn($order) => $order->status === 'pending')->count();
+    $totalBulkWeight = $orders->sum('load_kg');
+@endphp
 
-            <div class="bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg shadow-lg p-6 flex flex-col justify-between">
-                <h2 class="text-lg font-semibold">🚀 Quick Action</h2>
-                <p class="mb-4">Have a new bulk order? Get started now.</p>
-                <a href="{{ route('bulk.orders.create') }}" class="bg-white text-purple-700 px-4 py-2 rounded shadow hover:bg-gray-100 text-center">Request New Bulk Order</a>
-            </div>
-        </div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow text-center">
+        <h3 class="text-sm text-gray-500 dark:text-gray-400">Total Bulk Orders (All Pages)</h3>
+        <p class="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-2">{{ $totalBulkOrders }}</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow text-center">
+        <h3 class="text-sm text-gray-500 dark:text-gray-400">Pending (This Page)</h3>
+        <p class="text-3xl font-bold text-yellow-500 dark:text-yellow-400 mt-2">{{ $pendingBulkOrders }}</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow text-center">
+        <h3 class="text-sm text-gray-500 dark:text-gray-400">Total Weight (This Page)</h3>
+        <p class="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mt-2">{{ number_format($totalBulkWeight, 1) }} kg</p>
+    </div>
+</div>
+
+
+
+      
 
         <!-- Bulk Orders List Table -->
         <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">

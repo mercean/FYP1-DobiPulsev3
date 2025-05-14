@@ -2,20 +2,8 @@
 
 @section('content')
 <div class="flex flex-col lg:flex-row min-h-screen bg-gray-100 dark:bg-gray-900">
-    <!-- Sidebar -->
-    <div class="w-full lg:w-64 bg-white dark:bg-gray-800 shadow-lg">
-        <div class="p-6">
-            <h2 class="text-2xl font-bold text-blue-600 dark:text-white mb-6">🎁 Redeem Points</h2>
-            <nav class="space-y-4 text-gray-700 dark:text-gray-300">
-                <a href="/dashboard" class="block hover:text-blue-600">🏠 Dashboard</a>
-                <a href="/orders" class="block hover:text-blue-600">📦 Orders</a>
-                <a href="/loyalty" class="block hover:text-blue-600">⭐ Loyalty Points</a>
-                <a href="/redeem" class="block text-blue-600 font-semibold">🎁 Redeem Points</a>
-                <a href="/notifications" class="block hover:text-blue-600">🔔 Notifications</a>
-                <a href="/settings" class="block hover:text-blue-600">⚙️ Settings</a>
-            </nav>
-        </div>
-    </div>
+    @include('components.regular.sidebar')
+
 
     <!-- Main Content -->
     <div class="flex-1 p-8">

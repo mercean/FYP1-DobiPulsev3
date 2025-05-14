@@ -5,14 +5,14 @@
     <!-- Heading -->
     <div class="text-center mb-8">
         <h1 class="text-3xl font-bold text-gray-800 dark:text-white">👤 Edit Profile</h1>
-        <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Update your personal details here.</p>
+        <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Update your personal details and profile picture.</p>
     </div>
 
     <!-- Profile Card -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 md:p-10">
         <!-- Avatar Section -->
         <div class="flex items-center space-x-4 mb-8">
-            <img src="https://ui-avatars.com/api/?name={{ urlencode($user->name) }}&background=0D8ABC&color=fff&size=128"
+            <img src="{{ $user->avatar ? asset('storage/' . $user->avatar) : 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=0D8ABC&color=fff&size=128' }}"
                  alt="User Avatar"
                  class="w-20 h-20 rounded-full border-4 border-blue-500 shadow-md">
             <div>
@@ -22,8 +22,16 @@
         </div>
 
         <!-- Form Section -->
-        <form action="{{ route('update.profile') }}" method="POST" class="space-y-6">
+        <form action="{{ route('update.profile') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
             @csrf
+
+            <!-- Avatar Upload -->
+            <div>
+                <label for="avatar" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Change Profile Picture</label>
+                <input type="file" id="avatar" name="avatar" accept="image/*"
+                       class="mt-1 w-full text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white border rounded-md">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Supported: JPG, PNG (max 2MB)</p>
+            </div>
 
             <!-- Name -->
             <div>

@@ -65,6 +65,7 @@ Route::middleware('auth')->group(function () {
 
     // Stripe Regular Payment
     Route::get('/payment/regular/{order}', [PaymentController::class, 'regularPaymentPage'])->name('payment.regular.page');
+    Route::get('/checkout/{order}', [PaymentController::class, 'showCheckoutPage'])->name('checkout.page');
     Route::post('/payment/regular/initiate', [PaymentController::class, 'regularInitiate'])->name('payment.regular.initiate');
 
 
@@ -73,6 +74,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/loyalty/redeem', [LoyaltyController::class, 'redeemPoints']);
     Route::get('/loyalty', [LoyaltyController::class, 'showLoyaltyPage'])->name('loyalty.index');
 
+    // Update Profile
+    Route::post('/update-profile', [DashboardController::class, 'updateProfile'])->name('update.profile');
 
 
     // Loyalty Redemption Catalog

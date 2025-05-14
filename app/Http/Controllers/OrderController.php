@@ -11,56 +11,78 @@ use App\Models\User;
 
 class OrderController extends Controller
 {
-    // Show the New Order Placement Form
-    public function createOrder()
-    {
-        $machines = Machine::with('active_order')->get();
-    
-        return view('dashboard.new_order', compact('machines'));
-    }
-    
-    
+public function createOrder()
+{
+    $machines = Machine::with(['active_order' => function ($query) {
+    $query->select('id', 'machine_id', 'status', 'end_time');
+    }])->get();
 
-    // Store the order after form submission
-    public function store(Request $request)
-    {
-        $request->validate([
-            'machine_id' => 'required|integer|exists:machines,id',
-            'required_time' => 'required|integer|min:30|max:120',
-            'total_price' => 'required|numeric',
-        ]);
-    
-        $userId = auth()->id();
-        $price = $request->total_price;
-        $requiredTime = $request->required_time;
-        $machineId = $request->machine_id;
-    
-        // 🔐 Check if machine is still available
+
+
+
+    $orders = Order::where('user_id', auth()->id())
+                   ->whereIn('status', ['pending', 'processing', 'approved'])
+                   ->orderBy('created_at', 'desc')
+                   ->get();
+
+    $points = \App\Models\LoyaltyPoint::where('user_id', auth()->id())->sum('points');
+
+    // Add this part to generate dummy or real chart data
+    $chartData = [
+        'labels' => [],
+        'data' => [],
+    ];
+
+    foreach ($orders->take(5)->reverse() as $order) {
+        $chartData['labels'][] = 'Order #' . $order->id;
+        $chartData['data'][] = $order->total_amount;
+    }
+
+    return view('dashboard.new_order', compact('machines', 'orders', 'points', 'chartData'));
+}
+
+public function store(Request $request)
+{
+    $request->validate([
+        'machine_ids'   => 'required|array',
+        'machine_ids.*' => 'required|integer|exists:machines,id',
+        'required_times' => 'required|array',
+        'required_times.*' => 'required|integer|min:30|max:120',
+        'total_price'   => 'required|numeric',
+    ]);
+
+    $userId = auth()->id();
+    $orders = [];
+
+    foreach ($request->machine_ids as $machineId) {
         $machine = Machine::where('id', $machineId)->where('status', 'available')->first();
-    
+
         if (!$machine) {
-            return redirect()->back()->with('error', 'Selected machine is no longer available.');
+            return redirect()->back()->with('error', "Machine #$machineId is no longer available.");
         }
-    
-        // 🔒 Lock the machine early to prevent race conditions
+
+        $time = (int) $request->required_times[$machineId];
+        $rate = strtolower($machine->type) === 'dryer' ? 4.00 : 5.00;
+        $price = ($time / 30) * $rate;
+
         $machine->status = 'in_use';
         $machine->save();
-    
-        // 🧾 Generate unique order number
-        $orderNumber = 'ORD-' . strtoupper(Str::random(6));
-    
-        // 📝 Create the new order
-        $order = Order::create([
-            'user_id' => $userId,
-            'order_number' => $orderNumber,
-            'machine_id' => $machineId,
-            'required_time' => $requiredTime,
-            'total_amount' => $price,
-            'status' => 'pending',
+
+        $orderNumber = 'ORD-' . strtoupper(\Str::random(6));
+        $orders[] = Order::create([
+            'user_id'       => $userId,
+            'order_number'  => $orderNumber,
+            'machine_id'    => $machineId,
+            'required_time' => $time,
+            'total_amount'  => $price,
+            'status'        => 'pending',
         ]);
-    
-        return redirect()->route('payment.regular.page', ['order' => $order->id]);
     }
+
+    return redirect()->route('payment.regular.page', ['order' => $orders[0]->id]);
+}
+
+
     
     
         public function destroy($id)
@@ -74,5 +96,9 @@ class OrderController extends Controller
 
         return redirect()->back()->with('success', 'Order cancelled successfully.');
     }
+    // app/Models/Machine.php
+
+
+
 
 }

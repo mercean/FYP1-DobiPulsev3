@@ -11,21 +11,19 @@ class Machine extends Model
 
     protected $fillable = ['type', 'location', 'status'];
 
+    public function active_order()
+    {
+        return $this->hasOne(Order::class, 'machine_id')
+            ->whereIn('status', ['PayNow', 'pending', 'processing', 'approved'])
+            ->latest('created_at');
+    }
+
+
+
     public function orders()
     {
         return $this->hasMany(Order::class);
     }
-
-    public function active_order()
-    {
-        return $this->hasOne(Order::class, 'machine_id')
-            ->where('status', 'approved') // ✅ only track approved orders
-            ->whereNotNull('end_time')
-            ->latest('created_at');
-    }
-    
-    
-    
 
     public function checkout($orderId)
     {
@@ -34,5 +32,6 @@ class Machine extends Model
 
         return view('orders.checkout', compact('order', 'machines'));
     }
-    
+
+
 }

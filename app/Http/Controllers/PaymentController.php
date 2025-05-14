@@ -125,7 +125,8 @@ class PaymentController extends Controller
         $order->save();
 
         \Log::info("🕒 Queueing job to unlock machine at: " . $order->end_time);
-        MarkMachineAvailable::dispatch($order->id); // sync = instant
+        \App\Jobs\MarkMachineAvailable::dispatch($order->id)->delay($order->end_time);
+
 
 
         if ($order->machine_id) {
@@ -150,4 +151,5 @@ class PaymentController extends Controller
 
         return view('orders.payment_success', compact('order'));
     }
+
 }

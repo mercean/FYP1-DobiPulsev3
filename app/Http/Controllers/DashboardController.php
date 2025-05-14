@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\LoyaltyPoint;
 use App\Models\Order; 
 use Carbon\Carbon;
+use App\Models\BulkOrder;
+
 
 
 class DashboardController extends Controller
@@ -37,27 +39,27 @@ class DashboardController extends Controller
     public function regularDashboard()
     {
         $user = Auth::user();
-    
-        $orders = Order::where('user_id', $user->id)
-               ->whereIn('status', ['pending', 'processing', 'approved', 'completed'])
-               ->orderBy('created_at', 'desc')
-               ->get();
 
-        $points = LoyaltyPoint::where('user_id', $user->id)->sum('points');
-    
-        // 🧠 Prepare chart data
+        $orders = Order::where('user_id', $user->id)
+            ->whereIn('status', ['pending', 'processing', 'approved', 'completed'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $points = \App\Models\LoyaltyPoint::where('user_id', $user->id)->sum('points');
+
         $chartData = [
             'labels' => [],
             'data' => [],
         ];
-    
+
         foreach ($orders->take(5)->reverse() as $order) {
             $chartData['labels'][] = 'Order #' . $order->id;
             $chartData['data'][] = $order->total_amount;
         }
-    
+
         return view('dashboard.regular', compact('orders', 'points', 'chartData'));
     }
+
     public function orders()
     {
         $user = auth()->user();
@@ -85,10 +87,15 @@ class DashboardController extends Controller
     /**
      * Bulk User Dashboard
      */
-    public function bulkDashboard()
-    {
-        return view('dashboard.bulk'); // Show bulk user's dashboard
-    }
+public function bulkDashboard()
+{
+    // Get all bulk orders for the logged-in user
+    $orders = BulkOrder::where('user_id', Auth::id())
+                ->orderByDesc('created_at')
+                ->paginate(10); // paginated to match the blade view's use of ->total()
+
+    return view('dashboard.bulk', compact('orders'));
+}
 
     /**
      * Admin User Dashboard
@@ -125,4 +132,28 @@ class DashboardController extends Controller
         'chartData' => $chartData,
     ]);
 }
+    public function updateProfile(Request $request)
+{
+    $user = auth()->user();
+
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email',
+        'phone' => 'nullable|string',
+        'avatar' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+    ]);
+
+    if ($request->hasFile('avatar')) {
+        $path = $request->file('avatar')->store('avatars', 'public');
+        $user->avatar = $path;
+    }
+
+    $user->name = $request->name;
+    $user->email = $request->email;
+    $user->phone = $request->phone;
+    $user->save();
+
+    return back()->with('success', 'Profile updated.');
+}
+
 }

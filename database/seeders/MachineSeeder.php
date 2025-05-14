@@ -2,15 +2,14 @@
 
 namespace Database\Seeders;
 
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Machine;
 
+
 class MachineSeeder extends Seeder
 {
-    /**
-     * Seed the machines table with 6 washers and 6 dryers.
-     */
-    public function run(): void
+    public function run()
     {
         $types = ['washer', 'dryer'];
 
@@ -18,7 +17,7 @@ class MachineSeeder extends Seeder
             for ($i = 1; $i <= 6; $i++) {
                 Machine::create([
                     'type' => $type,
-                    'location' => 'Level ' . ceil($i / 2),
+                    'location' => 'Level ' . ceil($i / 2), // You can customize
                     'status' => 'available',
                 ]);
             }

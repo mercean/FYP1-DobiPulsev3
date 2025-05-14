@@ -8,7 +8,7 @@
              class="w-12 h-12 rounded-full border-2 border-blue-500 shadow-sm">
         <div class="flex-1">
             <p class="text-sm font-semibold text-gray-800 dark:text-white truncate">{{ Auth::user()->name }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Regular User</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Bulk User</p>
         </div>
 
         <!-- X Button inside sidebar -->
@@ -18,22 +18,13 @@
             </svg>
         </button>
     </div>
-    <!-- Sidebar Navigation -->
-    <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-        <a href="/dashboard" class="block px-4 py-2 rounded hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600">
-            Dashboard
-        </a>
-        <a href="{{ route('regular.orders') }}" class="block px-4 py-2 rounded hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600">
-            My Orders
-        </a>
-        <a href="/loyalty" class="block px-4 py-2 rounded hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600">
-            Loyalty Points
-        </a>
-        <a href="/redeem_catalog" class="block px-4 py-2 rounded hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600">
-            Loyalty Catalog
-        </a>
-        <a href="{{ route('edit.profile') }}" class="block px-4 py-2 rounded hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600">
-            Edit Profile
-        </a>
+
+    <nav class="p-6 space-y-4 text-sm font-medium">
+        <a href="/dashboard" class="block px-3 py-2 rounded hover:bg-white hover:text-[#0f172a]">Dashboard</a>
+        <a href="{{ route('bulk.orders.index') }}" class="block px-3 py-2 rounded hover:bg-white hover:text-[#0f172a]">My Orders</a>
+        <a href="{{ route('edit.profile') }}" class="block px-3 py-2 rounded hover:bg-white hover:text-[#0f172a]">Edit Profile</a>
+        <a href="{{ route('bulk.orders.create') }}" class="block px-3 py-2 rounded hover:bg-white hover:text-[#0f172a]">Create Order</a>
     </nav>
 </aside>
+
+

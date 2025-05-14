@@ -73,15 +73,23 @@ class RegisterController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . Auth::id(),
             'phone' => 'nullable|string|max:15',
+            'avatar' => 'nullable|image|mimes:jpg,jpeg,png|max:2048', // ✅ Add this
         ]);
 
         $user = Auth::user();
-        $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-        ]);
+
+        // ✅ Handle avatar upload
+        if ($request->hasFile('avatar')) {
+            $path = $request->file('avatar')->store('avatars', 'public');
+            $user->avatar = $path;
+        }
+
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->phone = $request->phone;
+        $user->save();
 
         return redirect()->route('dashboard')->with('success', 'Profile updated successfully!');
     }
+
 }

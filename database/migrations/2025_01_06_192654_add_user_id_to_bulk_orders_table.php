@@ -9,8 +9,7 @@ class AddUserIdToBulkOrdersTable extends Migration
     public function up()
     {
         Schema::table('bulk_orders', function (Blueprint $table) {
-            $table->integer('user_id')->unsigned()->after('status'); // Adding the user_id column
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade'); // Setting up the foreign key constraint
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
         });
     }
 
@@ -22,3 +21,4 @@ class AddUserIdToBulkOrdersTable extends Migration
         });
     }
 }
+
