@@ -16,7 +16,6 @@ use App\Mail\PaymentReceipt;
 use Illuminate\Support\Facades\Mail;
 use App\Jobs\MarkMachineAvailable;
 
-
 class PaymentController extends Controller
 {
     // 🔹 Bulk Order Payment (Stripe USD)
@@ -53,7 +52,7 @@ class PaymentController extends Controller
         return redirect()->route('bulk.orders.index')->with('success', 'Payment successful!');
     }
 
-    // 🔹 Regular Order Payment Page
+    // 🔹 Regular Order Payment Page (Single)
     public function regularPaymentPage(Order $order)
     {
         $user = auth()->user();
@@ -64,7 +63,23 @@ class PaymentController extends Controller
         return view('orders.regular_payment', compact('order', 'coupons'));
     }
 
-    // 🔹 Initiate Stripe Payment for Regular Order
+    // 🔹 NEW: Regular Order Payment Page (Multiple)
+    public function regularPaymentMultiPage(Request $request)
+    {
+        $user = auth()->user();
+        $ids = explode(',', $request->query('order_ids'));
+        $orders = Order::whereIn('id', $ids)
+                    ->where('user_id', $user->id)
+                    ->get();
+
+        $coupons = Coupon::where('user_id', $user->id)
+            ->where('used', false)
+            ->get();
+
+        return view('orders.regular_payment', compact('orders', 'coupons'));
+    }
+
+    // 🔹 Regular Initiate (UNCHANGED - still single order only)
     public function regularInitiate(Request $request)
     {
         \Log::info('💳 INITIATE START', $request->all());
@@ -115,19 +130,50 @@ class PaymentController extends Controller
         }
     }
 
-    // 🔹 On Successful Regular Payment
+    // 🔹 On Successful Regular Payment (Now handles multiple orders too)
     public function regularSuccess(Request $request)
     {
-        $order = Order::findOrFail($request->order_id);
+        $orderIds = $request->query('order_ids');
 
+        if ($orderIds) {
+            $ids = explode(',', $orderIds);
+            $orders = Order::whereIn('id', $ids)->get();
+
+            foreach ($orders as $order) {
+                $order->status = 'approved';
+                $order->end_time = Carbon::now()->addMinutes($order->required_time);
+                $order->save();
+
+                \App\Jobs\MarkMachineAvailable::dispatch($order->id)->delay($order->end_time);
+
+                if ($order->machine_id) {
+                    $machine = Machine::find($order->machine_id);
+                    if ($machine) {
+                        $machine->status = 'in_use';
+                        $machine->save();
+                    }
+                }
+
+                $points = ($order->required_time / 30) * 50;
+                $loyalty = LoyaltyPoint::firstOrNew(['user_id' => $order->user_id]);
+                $loyalty->points = ($loyalty->points ?? 0) + $points;
+                $loyalty->expiry_date = now()->addMonths(6);
+                $loyalty->save();
+
+                $order->load('user');
+                Mail::to($order->user->email)->send(new PaymentReceipt($order));
+            }
+
+            return view('orders.payment_success', compact('orders'));
+        }
+
+        // fallback: single order
+        $order = Order::findOrFail($request->order_id);
         $order->status = 'approved';
         $order->end_time = Carbon::now()->addMinutes($order->required_time);
         $order->save();
 
-        \Log::info("🕒 Queueing job to unlock machine at: " . $order->end_time);
         \App\Jobs\MarkMachineAvailable::dispatch($order->id)->delay($order->end_time);
-
-
 
         if ($order->machine_id) {
             $machine = Machine::find($order->machine_id);
@@ -143,13 +189,11 @@ class PaymentController extends Controller
         $loyalty->expiry_date = now()->addMonths(6);
         $loyalty->save();
 
-        $order->load('user'); // ensure user is loaded for email
-
+        $order->load('user');
         Mail::to($order->user->email)->send(new PaymentReceipt($order));
 
-        \Log::info("✅ Order approved with points and end_time set", $order->toArray());
+        \Log::info("✅ Single order approved", $order->toArray());
 
         return view('orders.payment_success', compact('order'));
     }
-
 }

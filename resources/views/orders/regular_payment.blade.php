@@ -31,8 +31,19 @@
         <div>
             <h3 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">📦 Order Summary</h3>
             <div class="text-sm text-gray-700 dark:text-gray-300 space-y-2">
-                <p><strong>Machine:</strong> {{ $order->machine_id }}</p>
-                <p><strong>Points:</strong> {{ ($order->required_time / 30) * 50 }} pts</p>
+                @php
+                    $totalAmount = 0;
+                @endphp
+
+                @if(isset($orders))
+                    @foreach ($orders as $order)
+                        <p><strong>Machine:</strong> {{ $order->machine_id }} — <strong>{{ $order->required_time }} mins</strong> ({{ ($order->required_time / 30) * 50 }} pts)</p>
+                        @php $totalAmount += $order->total_amount; @endphp
+                    @endforeach
+                @else
+                    <p><strong>Machine:</strong> {{ $order->machine_id }} — <strong>{{ $order->required_time }} mins</strong> ({{ ($order->required_time / 30) * 50 }} pts)</p>
+                    @php $totalAmount = $order->total_amount; @endphp
+                @endif
 
                 <!-- Coupon -->
                 <div class="mt-4">
@@ -57,7 +68,7 @@
                             <button type="button"
                                 class="w-full text-left px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-blue-100 dark:hover:bg-blue-800 rounded transition"
                                 onclick="document.getElementById('coupon_code').value = '{{ $coupon->code }}'; document.getElementById('apply-coupon-btn').click();">
-                                <strong>{{ $coupon->code }}</strong> —
+                                <strong>{{ $coupon->code }}</strong> — 
                                 @if ($coupon->type === 'percent')
                                     {{ $coupon->value }}% off
                                 @elseif($coupon->type === 'fixed')
@@ -71,7 +82,7 @@
                 </details>
                 @endif
 
-                <p class="mt-4"><strong>Total:</strong> RM<span id="final-total">{{ number_format($order->total_amount, 2) }}</span></p>
+                <p class="mt-4"><strong>Total:</strong> RM<span id="final-total">{{ number_format($totalAmount, 2) }}</span></p>
             </div>
 
             <!-- Stripe Card Input -->
@@ -99,10 +110,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const card = elements.create('card');
     const cardContainer = document.getElementById('card-container');
     const payNowBtn = document.getElementById('pay-now-btn');
-    const originalTotal = {{ $order->total_amount }};
+    const originalTotal = {{ $totalAmount }};
     const finalTotalDisplay = document.getElementById('final-total');
     let selectedPaymentMethod = null;
     let discount = 0;
+
+    @php
+        $firstOrderId = isset($orders) ? $orders->first()->id : $order->id;
+        $orderIds = isset($orders) ? $orders->pluck('id')->implode(',') : $order->id;
+    @endphp
+
     let cardMounted = false;
 
     function updateTotalDisplay() {
@@ -147,7 +164,6 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const orderId = "{{ $order->id }}";
         const couponCode = document.getElementById('coupon_code').value.trim();
 
         const res = await fetch('{{ route("payment.regular.initiate") }}', {
@@ -156,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
             },
-            body: JSON.stringify({ order_id: orderId, coupon: couponCode })
+            body: JSON.stringify({ order_id: "{{ $firstOrderId }}", coupon: couponCode })
         });
 
         const data = await res.json();
@@ -168,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (result.error) {
                 document.getElementById('card-errors').textContent = result.error.message;
             } else if (result.paymentIntent.status === 'succeeded') {
-                window.location.href = "/payment/regular/success?order_id=" + orderId;
+                window.location.href = "/payment/regular/success?order_ids={{ $orderIds }}";
             }
         }
     });

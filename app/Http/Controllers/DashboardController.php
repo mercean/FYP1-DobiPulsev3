@@ -8,6 +8,7 @@ use App\Models\LoyaltyPoint;
 use App\Models\Order; 
 use Carbon\Carbon;
 use App\Models\BulkOrder;
+use App\Models\Promotion;
 
 
 
@@ -36,29 +37,36 @@ class DashboardController extends Controller
     /**
      * Regular User Dashboard
      */
-    public function regularDashboard()
-    {
-        $user = Auth::user();
+public function regularDashboard()
+{
+    $user = Auth::user();
 
-        $orders = Order::where('user_id', $user->id)
-            ->whereIn('status', ['pending', 'processing', 'approved', 'completed'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+    $orders = Order::where('user_id', $user->id)
+        ->whereIn('status', ['pending', 'processing', 'approved', 'completed'])
+        ->orderBy('created_at', 'desc')
+        ->get();
 
-        $points = \App\Models\LoyaltyPoint::where('user_id', $user->id)->sum('points');
+    $points = \App\Models\LoyaltyPoint::where('user_id', $user->id)->sum('points');
 
-        $chartData = [
-            'labels' => [],
-            'data' => [],
-        ];
+    $chartData = [
+        'labels' => [],
+        'data' => [],
+    ];
 
-        foreach ($orders->take(5)->reverse() as $order) {
-            $chartData['labels'][] = 'Order #' . $order->id;
-            $chartData['data'][] = $order->total_amount;
-        }
-
-        return view('dashboard.regular', compact('orders', 'points', 'chartData'));
+    foreach ($orders->take(5)->reverse() as $order) {
+        $chartData['labels'][] = 'Order #' . $order->id;
+        $chartData['data'][] = $order->total_amount;
     }
+
+    // ✅ Get current promotions
+    $promos = \App\Models\Promotion::whereDate('start_date', '<=', now())
+                ->whereDate('end_date', '>=', now())
+                ->get();
+
+    // ✅ Combine everything in a single return
+    return view('dashboard.regular', compact('orders', 'points', 'chartData', 'promos'));
+}
+
 
     public function orders()
     {

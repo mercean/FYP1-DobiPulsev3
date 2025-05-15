@@ -12,6 +12,8 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\LoyaltyController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\QRController;
+use App\Http\Controllers\Admin\PromotionController;
+
 
 
 
@@ -64,6 +66,9 @@ Route::middleware('auth')->group(function () {
 
 
     // Stripe Regular Payment
+    Route::get('/payment/regular/multi', [PaymentController::class, 'regularPaymentMultiPage'])
+    ->name('payment.regular.multi')
+    ->middleware('auth');
     Route::get('/payment/regular/{order}', [PaymentController::class, 'regularPaymentPage'])->name('payment.regular.page');
     Route::get('/checkout/{order}', [PaymentController::class, 'showCheckoutPage'])->name('checkout.page');
     Route::post('/payment/regular/initiate', [PaymentController::class, 'regularInitiate'])->name('payment.regular.initiate');
@@ -109,7 +114,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/export-bulk-orders', [AdminDashboardController::class, 'exportBulkOrders'])->name('admin.exportBulkOrders');
     Route::get('/admin/bulk-orders', [AdminDashboardController::class, 'bulkOrders'])->name('admin.bulkOrders');
     Route::get('/admin/bulk-order/{id}/details', [AdminDashboardController::class, 'viewBulkOrderDetails'])->name('admin.viewBulkOrderDetails');
-
+    Route::middleware(['auth', 'is_admin'])->prefix('admin')->group(function () {
+    Route::resource('promotions', PromotionController::class)->names([
+        'index' => 'promotions.index',
+        'create' => 'promotions.create',
+        'store' => 'promotions.store',
+        'edit' => 'promotions.edit',
+        'update' => 'promotions.update',
+        'destroy' => 'promotions.destroy',
+    ]);
+});
     // Pages
     Route::get('services', [PageController::class, 'services'])->name('services');
     Route::get('about', [PageController::class, 'about'])->name('about');
