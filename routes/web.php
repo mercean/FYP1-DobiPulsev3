@@ -56,6 +56,19 @@ Route::middleware('auth')->group(function () {
                 : redirect()->route('login')->with('error', 'Invalid account type.'));
     })->name('dashboard');
 
+    Route::get('/notifications', function () {
+    return view('notifications.index', [
+        'notifications' => Auth::user()->notifications()->paginate(10)
+    ]);
+})->name('notifications.all');
+
+Route::post('/notifications/mark-all-read', function () {
+    Auth::user()->unreadNotifications->markAsRead();
+    return back();
+})->name('notifications.readall');
+
+
+
     // 🧠 Regular User Routes
     Route::get('/regular-dashboard', [DashboardController::class, 'regularDashboard'])->name('regular.dashboard');
     Route::get('/transactions', [LoyaltyController::class, 'transactionHistory'])->name('transactions.history');

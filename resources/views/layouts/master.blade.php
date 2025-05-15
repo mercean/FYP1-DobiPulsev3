@@ -53,29 +53,60 @@
 
       <!-- Top Navigation -->
       <nav class="flex-1 flex justify-end items-center space-x-6">
-        <a href="{{ url('/') }}" class="hover:underline">Home</a>
-        <a href="{{ route('services') }}" class="hover:underline">Services</a>
-        <a href="{{ route('about') }}" class="hover:underline">About Us</a>
+        <!-- 🔔 Notification Bell -->
+<div class="relative" x-data="{ open: false }">
+    <button @click="open = !open" class="relative focus:outline-none">
+        <svg class="w-6 h-6 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor" stroke-width="2"
+            viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 
+                   6.002 0 00-4-5.659V4a2 2 0 00-4 0v1.341C7.67 
+                   6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 
+                   1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
+            </path>
+        </svg>
 
-        @guest
-          <a href="{{ route('register') }}" class="hover:underline">Register</a>
-          <a href="{{ route('login') }}" class="hover:underline">Login</a>
-        @endguest
+        @if(Auth::check() && Auth::user()->unreadNotifications->count())
+            <span class="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center animate-pulse">
+                {{ Auth::user()->unreadNotifications->count() }}
+            </span>
+        @endif
+    </button>
 
-        @auth
-          <a href="{{ route('edit.profile') }}" class="hover:underline">My Account</a>
-          <form action="{{ route('logout') }}" method="POST">
-            @csrf
-            <button type="submit" class="hover:underline text-sm">Logout</button>
-          </form>
-        @endauth
+    <!-- Dropdown -->
+    <div x-show="open" @click.away="open = false"
+         class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-50 overflow-hidden"
+         x-cloak>
+        <div class="px-4 py-2 font-semibold text-gray-800 dark:text-gray-100 border-b dark:border-gray-600">
+            Notifications
+        </div>
+        <ul class="max-h-80 overflow-y-auto divide-y dark:divide-gray-700 text-sm">
+            @forelse(Auth::user()->unreadNotifications->take(5) as $notif)
+                <li class="px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <a href="{{ $notif->data['url'] ?? '#' }}" class="block">
+                        <div class="font-bold text-gray-800 dark:text-white">
+                            {{ $notif->data['title'] ?? 'Notification' }}
+                        </div>
+                        <div class="text-gray-600 dark:text-gray-400">
+                            {{ $notif->data['body'] ?? '' }}
+                        </div>
+                        <div class="text-xs text-right text-gray-400 mt-1">
+                            {{ $notif->created_at->diffForHumans() }}
+                        </div>
+                    </a>
+                </li>
+            @empty
+                <li class="px-4 py-4 text-center text-gray-500 dark:text-gray-400">No new notifications.</li>
+            @endforelse
+        </ul>
+        <div class="text-center px-4 py-2 bg-gray-50 dark:bg-gray-700 border-t dark:border-gray-600">
+            <a href="{{ route('notifications.all') }}" class="text-xs text-blue-600 hover:underline">
+                View All
+            </a>
+        </div>
+    </div>
+</div>
 
-        <button @click="darkMode = !darkMode"
-                class="ml-4 px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-sm">
-          <span x-text="darkMode ? '☀ Light' : '🌙 Dark'"></span>
-        </button>
-      </nav>
-    </header>
 
     <!-- Page Content -->
     <main class="flex-1 p-4 md:p-6">

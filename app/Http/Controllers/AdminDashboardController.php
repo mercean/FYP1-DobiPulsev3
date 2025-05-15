@@ -12,6 +12,8 @@ use Stripe\PaymentIntent;
 use Stripe\BalanceTransaction;
 use League\Csv\Writer; // Add this line at the top of your controller
 use Illuminate\Http\Response;
+use App\Jobs\SendPickupReminder; // ⬅️ Add this at the top
+
 
 
 class AdminDashboardController extends Controller
@@ -129,7 +131,11 @@ class AdminDashboardController extends Controller
             $bulkOrder->status = $status;
             $bulkOrder->save();
             \Log::info("Order ID: {$bulkOrder->id} status updated to {$status}");
-        }
+
+             // ✅ Dispatch pickup reminder if status is "waiting pickup"
+            if ($status === 'waiting pickup') {
+                SendPickupReminder::dispatch($bulkOrder->id)->delay(now()->addMinutes(30)); // or any delay
+                }
     
         return redirect()->route('admin.dashboard')->with('status', 'Order status updated!');
     }
