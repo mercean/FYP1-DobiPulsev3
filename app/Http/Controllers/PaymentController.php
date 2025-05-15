@@ -80,55 +80,75 @@ class PaymentController extends Controller
     }
 
     // 🔹 Regular Initiate (UNCHANGED - still single order only)
-    public function regularInitiate(Request $request)
-    {
-        \Log::info('💳 INITIATE START', $request->all());
+public function regularInitiate(Request $request)
+{
+    \Log::info('💳 INITIATE START', $request->all());
 
-        try {
-            $order = Order::findOrFail($request->order_id);
-            $discountAmount = 0;
+    try {
+        $order = Order::findOrFail($request->order_id);
+        $discountAmount = 0;
+        $promoApplied = null;
 
-            if ($request->coupon) {
-                $coupon = Coupon::where('code', $request->coupon)
-                    ->where('user_id', $order->user_id)
-                    ->where('used', false)
-                    ->first();
+        if ($request->coupon) {
+            // 🧾 Manual coupon logic
+            $coupon = Coupon::where('code', $request->coupon)
+                ->where('user_id', $order->user_id)
+                ->where('used', false)
+                ->first();
 
-                if ($coupon) {
-                    if ($coupon->type === 'fixed') {
-                        $discountAmount = floatval($coupon->value);
-                    } elseif ($coupon->type === 'percent') {
-                        $discountAmount = $order->total_amount * (floatval($coupon->value) / 100);
-                    }
+            if ($coupon) {
+                if ($coupon->type === 'fixed') {
+                    $discountAmount = floatval($coupon->value);
+                } elseif ($coupon->type === 'percent') {
+                    $discountAmount = $order->total_amount * (floatval($coupon->value) / 100);
+                }
 
-                    $coupon->used = true;
-                    $coupon->save();
+                $coupon->used = true;
+                $coupon->save();
+            }
+        } else {
+            // 🧩 Auto apply promotion (if no coupon entered)
+            $autoPromo = \App\Models\Promotion::where('auto_apply', true)
+                ->whereDate('start_date', '<=', now())
+                ->whereDate('end_date', '>=', now())
+                ->first();
+
+            if ($autoPromo) {
+                $promoApplied = $autoPromo;
+
+                if ($autoPromo->type === 'fixed') {
+                    $discountAmount = floatval($autoPromo->value);
+                } elseif ($autoPromo->type === 'percent') {
+                    $discountAmount = $order->total_amount * (floatval($autoPromo->value) / 100);
                 }
             }
-
-            $finalAmount = max(0, $order->total_amount - $discountAmount);
-            \Log::info("🧾 Final Amount for Stripe: RM$finalAmount");
-
-            Stripe::setApiKey(Config::get('services.stripe.secret'));
-
-            $paymentIntent = PaymentIntent::create([
-                'amount' => $finalAmount * 100,
-                'currency' => 'myr',
-                'metadata' => [
-                    'order_id' => $order->id,
-                    'discount_applied' => $discountAmount,
-                    'coupon_code' => $request->coupon ?? 'none',
-                ],
-            ]);
-
-            return response()->json([
-                'clientSecret' => $paymentIntent->client_secret,
-            ]);
-        } catch (\Throwable $e) {
-            \Log::error('💥 Payment Initiate Error: ' . $e->getMessage());
-            return response()->json(['error' => 'Something went wrong.'], 500);
         }
+
+        $finalAmount = max(0, $order->total_amount - $discountAmount);
+        \Log::info("🧾 Final Amount for Stripe: RM$finalAmount");
+
+        Stripe::setApiKey(Config::get('services.stripe.secret'));
+
+        $paymentIntent = PaymentIntent::create([
+            'amount' => $finalAmount * 100,
+            'currency' => 'myr',
+            'metadata' => [
+                'order_id' => $order->id,
+                'discount_applied' => $discountAmount,
+                'coupon_code' => $request->coupon ?? ($promoApplied->code ?? 'auto-applied'),
+            ],
+        ]);
+
+        return response()->json([
+            'clientSecret' => $paymentIntent->client_secret,
+        ]);
+    } catch (\Throwable $e) {
+        \Log::error('💥 Payment Initiate Error: ' . $e->getMessage());
+        return response()->json(['error' => 'Something went wrong.'], 500);
     }
+}
+
+
 
     // 🔹 On Successful Regular Payment (Now handles multiple orders too)
     public function regularSuccess(Request $request)

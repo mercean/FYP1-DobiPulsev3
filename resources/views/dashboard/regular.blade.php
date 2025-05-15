@@ -28,58 +28,37 @@
     <div class="bg-yellow-100 dark:bg-yellow-800 border-l-4 border-yellow-500 text-yellow-900 dark:text-yellow-100 p-4 mb-6 rounded shadow">
         <h3 class="text-lg font-bold mb-2">🎉 Current Promotions</h3>
         <ul class="list-disc pl-5 text-sm">
-@foreach ($promos as $promo)
-    @if ($promo->promo_image)
-        <img src="{{ asset('storage/' . $promo->promo_image) }}" alt="Promo Image" class="w-full max-h-48 object-cover mb-2 rounded-xl shadow">
-    @endif
+            @foreach ($promos as $promo)
+                <li class="mb-4 list-none">
+                    @if ($promo->promo_image)
+                        <img src="{{ asset('storage/' . $promo->promo_image) }}" alt="Promo Image" class="w-full max-h-48 object-cover mb-2 rounded-xl shadow">
+                    @endif
 
-    <li class="mb-4">
-        <strong class="text-lg">{{ $promo->title }}</strong><br>
-        <span class="text-sm">{{ $promo->description }}</span><br>
-        <span class="text-xs text-gray-600 dark:text-gray-300">
-            {{ $promo->start_date->format('M d') }} - {{ $promo->end_date->format('M d, Y') }}
-        </span><br>
-        @if ($promo->type === 'percent')
-            <span class="text-green-700 dark:text-green-300 font-semibold">{{ $promo->value }}% off</span>
-        @else
-            <span class="text-green-700 dark:text-green-300 font-semibold">RM{{ number_format($promo->value, 2) }} off</span>
-        @endif
+                    <strong class="text-lg">{{ $promo->title }}</strong><br>
+                    <span class="text-sm">{{ $promo->description }}</span><br>
+                    <span class="text-xs text-gray-600 dark:text-gray-300">
+                        {{ $promo->start_date->format('M d') }} - {{ $promo->end_date->format('M d, Y') }}
+                    </span><br>
 
-        @if($promo->code)
-            <div class="mt-1 text-xs">
-                Use Code: <span class="bg-white text-black px-2 py-1 rounded font-mono">{{ $promo->code }}</span>
-            </div>
-        @elseif($promo->auto_apply)
-            <div class="mt-1 text-xs text-green-600 dark:text-green-400 font-semibold">Auto Applied at Checkout</div>
-        @endif
-    </li>
-@endforeach
+                    @if ($promo->type === 'percent')
+                        <span class="text-green-700 dark:text-green-300 font-semibold">{{ $promo->value }}% off</span>
+                    @else
+                        <span class="text-green-700 dark:text-green-300 font-semibold">RM{{ number_format($promo->value, 2) }} off</span>
+                    @endif
 
+                    @if($promo->code)
+                        <div class="mt-1 text-xs">
+                            Use Code: <span class="bg-white text-black px-2 py-1 rounded font-mono">{{ $promo->code }}</span>
+                        </div>
+                    @elseif($promo->auto_apply)
+                        <div class="mt-1 text-xs text-green-600 dark:text-green-400 font-semibold">Auto Applied at Checkout</div>
+                    @endif
+                </li>
+            @endforeach
+        </ul>
+    </div>
+@endif
 
-        @php
-            $ongoingOrder = $orders->where('status', 'processing')->sortByDesc('created_at')->first();
-        @endphp
-
-        @if ($ongoingOrder && $ongoingOrder->end_time instanceof \Carbon\Carbon)
-            <div class="bg-yellow-100 dark:bg-yellow-800 border-l-4 border-yellow-500 text-yellow-700 dark:text-yellow-200 p-4 rounded-xl shadow-md">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h2 class="text-md font-semibold">🌀 Your Laundry is in Progress</h2>
-                        <p class="text-sm">Order ID: <strong>#{{ $ongoingOrder->id }}</strong></p>
-                        <p class="text-sm">Machine: #{{ $ongoingOrder->machine_id }}</p>
-                        <p class="text-sm">
-                            Time Left:
-                            <span class="countdown text-yellow-500" data-end-time="{{ $ongoingOrder->end_time->toIso8601String() }}">
-                                Calculating...
-                            </span>
-                        </p>
-                    </div>
-                    <a href="{{ route('orders.show', $ongoingOrder->id) }}" class="bg-yellow-600 hover:bg-yellow-700 text-white text-sm px-4 py-2 rounded">
-                        View Order
-                    </a>
-                </div>
-            </div>
-        @endif
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <x-dashboard.card title="Orders" :value="$orders->count()" />

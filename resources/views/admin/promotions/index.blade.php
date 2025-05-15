@@ -1,51 +1,84 @@
 @extends('layouts.master')
 
 @section('content')
-<div class="container mx-auto px-4 py-6">
-    <h2 class="text-xl font-bold mb-4">📢 Promotions</h2>
-    <a href="{{ route('promotions.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded mb-4 inline-block">+ New Promotion</a>
+<div class="container mx-auto px-4 py-8">
+    <h2 class="text-3xl font-bold mb-6 text-gray-900 dark:text-white">📢 Manage Promotions</h2>
 
-    <table class="w-full table-auto text-left bg-white shadow rounded">
-        <thead>
-            <tr class="bg-gray-200">
-                <th class="p-2">Title</th>
-                <th class="p-2">Type</th>
-                <th class="p-2">Value</th>
-                <th class="p-2">Start</th>
-                <th class="p-2">End</th>
-                <th class="p-2">Auto</th>
-                <th class="p-2">Code</th>
-                <th class="p-2">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse ($promotions as $promo)
-                <tr class="border-t">
-                    <td class="p-2">{{ $promo->title }}</td>
-                    <td class="p-2">{{ ucfirst($promo->type) }}</td>
-                    <td class="p-2">
+    <div class="flex justify-end mb-6">
+        <a href="{{ route('promotions.create') }}" class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-6 py-3 rounded-xl shadow transition">
+            ➕ Add Promotion
+        </a>
+    </div>
+
+    <div class="w-full overflow-x-auto bg-white dark:bg-gray-800 rounded-xl shadow">
+        <table class="min-w-full table-auto text-base text-left text-gray-900 dark:text-gray-100">
+            <thead class="bg-gray-100 dark:bg-gray-700 text-base">
+                <tr>
+                    <th class="px-6 py-4">📷</th>
+                    <th class="px-6 py-4">Title</th>
+                    <th class="px-6 py-4">Type</th>
+                    <th class="px-6 py-4">Value</th>
+                    <th class="px-6 py-4">Start</th>
+                    <th class="px-6 py-4">End</th>
+                    <th class="px-6 py-4">Auto</th>
+                    <th class="px-6 py-4">Code</th>
+                    <th class="px-6 py-4">Status</th>
+                    <th class="px-6 py-4">⚙️ Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-300 dark:divide-gray-600">
+                @forelse ($promotions as $promo)
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                    <td class="px-6 py-4">
+                        @if($promo->promo_image)
+                            <img src="{{ asset('storage/' . $promo->promo_image) }}" alt="Promo" class="w-20 h-12 object-cover rounded shadow">
+                        @else
+                            <span class="text-sm text-gray-400">No Image</span>
+                        @endif
+                    </td>
+                    <td class="px-6 py-4 font-semibold">{{ $promo->title }}</td>
+                    <td class="px-6 py-4 capitalize">{{ $promo->type }}</td>
+                    <td class="px-6 py-4">
                         @if($promo->type === 'percent')
                             {{ $promo->value }}%
                         @else
                             RM{{ number_format($promo->value, 2) }}
                         @endif
                     </td>
-                    <td class="p-2">{{ $promo->start_date->format('Y-m-d') }}</td>
-                    <td class="p-2">{{ $promo->end_date->format('Y-m-d') }}</td>
-                    <td class="p-2">{{ $promo->auto_apply ? 'Yes' : 'No' }}</td>
-                    <td class="p-2">{{ $promo->code ?? '-' }}</td>
-                    <td class="p-2 space-x-2">
-                        <a href="{{ route('promotions.edit', $promo) }}" class="text-blue-600 hover:underline">Edit</a>
+                    <td class="px-6 py-4">{{ $promo->start_date->format('Y-m-d') }}</td>
+                    <td class="px-6 py-4">{{ $promo->end_date->format('Y-m-d') }}</td>
+                    <td class="px-6 py-4">
+                        <span class="inline-block px-2 py-1 text-sm rounded {{ $promo->auto_apply ? 'bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-300' : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }}">
+                            {{ $promo->auto_apply ? 'Yes' : 'No' }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 font-mono text-sm">{{ $promo->code ?? '-' }}</td>
+                    <td class="px-6 py-4">
+                        @if(now()->between($promo->start_date, $promo->end_date))
+                            <span class="inline-block px-3 py-1 bg-green-600 text-white text-sm rounded-lg">Active</span>
+                        @else
+                            <span class="inline-block px-3 py-1 bg-gray-400 text-white text-sm rounded-lg">Expired</span>
+                        @endif
+                    </td>
+                    <td class="px-6 py-4 space-x-2">
+                        <a href="{{ route('promotions.edit', $promo) }}" class="text-blue-600 hover:underline font-medium">Edit</a>
                         <form action="{{ route('promotions.destroy', $promo) }}" method="POST" class="inline">
                             @csrf @method('DELETE')
-                            <button type="submit" onclick="return confirm('Delete this promotion?')" class="text-red-600 hover:underline">Delete</button>
+                            <button onclick="return confirm('Delete this promotion?')" class="text-red-600 hover:underline font-medium">Delete</button>
                         </form>
                     </td>
                 </tr>
-            @empty
-                <tr><td colspan="8" class="p-4 text-center">No promotions yet.</td></tr>
-            @endforelse
-        </tbody>
-    </table>
+                @empty
+                <tr>
+                    <td colspan="10" class="px-6 py-6 text-center text-gray-500 dark:text-gray-400">No promotions added yet.</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-6">
+        {{ $promotions->links('pagination::tailwind') }}
+    </div>
 </div>
 @endsection

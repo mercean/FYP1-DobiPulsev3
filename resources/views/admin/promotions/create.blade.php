@@ -1,13 +1,18 @@
 @extends('layouts.master')
 @section('content')
-<div class="container mx-auto px-4 py-6">
-    <h2 class="text-xl font-bold mb-4">➕ Create Promotion</h2>
-    <form method="POST" action="{{ route('promotions.store') }}">
-        @include('admin.promotions._form')
-        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded mt-4">Save</button>
-    </form>
+<div class="flex min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-300">
+    @include('components.admin.sidebar') {{-- Make sure this path exists --}}
+    
+    <main class="flex-1 p-6 lg:p-10 space-y-6 container mx-auto">
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">➕ Create Promotion</h2>
+
+        <form method="POST" action="{{ route('promotions.store') }}" enctype="multipart/form-data" class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md space-y-4 max-w-2xl">
+            @include('admin.promotions._form')
+            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Save</button>
+        </form>
+    </main>
 </div>
-@endsection
+
 <!-- _form.blade.php -->
 @csrf
 <div class="grid gap-4">
@@ -29,3 +34,4 @@
 
     <input type="text" name="code" placeholder="Optional Code" value="{{ old('code', $promotion->code ?? '') }}" class="input">
 </div>
+@endsection

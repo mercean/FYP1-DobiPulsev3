@@ -13,6 +13,8 @@ use App\Http\Controllers\LoyaltyController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\QRController;
 use App\Http\Controllers\Admin\PromotionController;
+use App\Http\Middleware\IsAdmin;
+
 
 
 
@@ -114,8 +116,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/export-bulk-orders', [AdminDashboardController::class, 'exportBulkOrders'])->name('admin.exportBulkOrders');
     Route::get('/admin/bulk-orders', [AdminDashboardController::class, 'bulkOrders'])->name('admin.bulkOrders');
     Route::get('/admin/bulk-order/{id}/details', [AdminDashboardController::class, 'viewBulkOrderDetails'])->name('admin.viewBulkOrderDetails');
-    Route::middleware(['auth', 'is_admin'])->prefix('admin')->group(function () {
-    Route::resource('promotions', PromotionController::class)->names([
+    Route::middleware(['auth', IsAdmin::class])->prefix('admin')->group(function () {    Route::resource('promotions', PromotionController::class)->names([
         'index' => 'promotions.index',
         'create' => 'promotions.create',
         'store' => 'promotions.store',
