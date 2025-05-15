@@ -11,8 +11,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SobiPulse</title>
-@vite(['resources/css/app.css', 'resources/js/app.js'])
+  <title>DobiPulse</title>
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <style>[x-cloak] { display: none !important; }</style>
@@ -22,7 +22,7 @@
   <!-- SIDEBAR ROLE CHECK -->
   @auth
     @if (Auth::user()->account_type === 'regular')
-      
+      @include('components.regular.sidebar')
     @elseif (Auth::user()->account_type === 'bulk')
       @include('components.bulk.sidebar')
     @elseif (Auth::user()->account_type === 'admin')
@@ -31,13 +31,13 @@
   @endauth
 
   <!-- Main Content Wrapper -->
-<div :class="showSidebar ? 'md:ml-64' : 'md:ml-0'" class="flex-1 flex flex-col transition-all duration-300 min-h-screen">
+  <div :class="showSidebar ? 'md:ml-64' : 'md:ml-0'" class="flex-1 flex flex-col transition-all duration-300 min-h-screen">
 
     <!-- Navbar -->
     <header class="bg-white dark:bg-gray-800 shadow px-4 py-4 flex items-center justify-between md:px-8 sticky top-0 z-30">
       @auth
         <!-- Burger Toggle -->
-          <button @click="showSidebar = !showSidebar" class="text-gray-700 dark:text-gray-200">
+        <button @click="showSidebar = !showSidebar" class="text-gray-700 dark:text-gray-200">
           <template x-if="!showSidebar">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -53,60 +53,85 @@
 
       <!-- Top Navigation -->
       <nav class="flex-1 flex justify-end items-center space-x-6">
+        @guest
+          <a href="{{ route('register') }}" class="hover:underline text-sm">Register</a>
+          <a href="{{ route('login') }}" class="hover:underline text-sm">Login</a>
+        @endguest
+
+        @auth
+          <a href="{{ url('/') }}" class="hover:underline text-sm">Home</a>
+          <a href="{{ route('services') }}" class="hover:underline text-sm">Services</a>
+          <a href="{{ route('about') }}" class="hover:underline text-sm">About</a>
+          <a href="{{ route('edit.profile') }}" class="hover:underline text-sm">My Account</a>
+
+          <form action="{{ route('logout') }}" method="POST" class="inline">
+            @csrf
+            <button type="submit" class="hover:underline text-sm">Logout</button>
+          </form>
+        @endauth
+
         <!-- 🔔 Notification Bell -->
-<div class="relative" x-data="{ open: false }">
-    <button @click="open = !open" class="relative focus:outline-none">
-        <svg class="w-6 h-6 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor" stroke-width="2"
-            viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round"
-                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 
-                   6.002 0 00-4-5.659V4a2 2 0 00-4 0v1.341C7.67 
-                   6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 
-                   1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
-            </path>
-        </svg>
+        @auth
+        <div class="relative" x-data="{ open: false }">
+          <button @click="open = !open" class="relative focus:outline-none">
+            <svg class="w-6 h-6 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor" stroke-width="2"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 
+                       6.002 0 00-4-5.659V4a2 2 0 00-4 0v1.341C7.67 
+                       6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 
+                       1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
+              </path>
+            </svg>
+            @if(Auth::user()->unreadNotifications->count())
+              <span class="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center animate-pulse">
+                  {{ Auth::user()->unreadNotifications->count() }}
+              </span>
+            @endif
+          </button>
 
-        @if(Auth::check() && Auth::user()->unreadNotifications->count())
-            <span class="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center animate-pulse">
-                {{ Auth::user()->unreadNotifications->count() }}
-            </span>
-        @endif
-    </button>
-
-    <!-- Dropdown -->
-    <div x-show="open" @click.away="open = false"
-         class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-50 overflow-hidden"
-         x-cloak>
-        <div class="px-4 py-2 font-semibold text-gray-800 dark:text-gray-100 border-b dark:border-gray-600">
-            Notifications
-        </div>
-        <ul class="max-h-80 overflow-y-auto divide-y dark:divide-gray-700 text-sm">
-            @forelse(Auth::user()->unreadNotifications->take(5) as $notif)
+          <!-- Dropdown -->
+          <div x-show="open" @click.away="open = false"
+               class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-50 overflow-hidden"
+               x-cloak>
+            <div class="px-4 py-2 font-semibold text-gray-800 dark:text-gray-100 border-b dark:border-gray-600">
+              Notifications
+            </div>
+            <ul class="max-h-80 overflow-y-auto divide-y dark:divide-gray-700 text-sm">
+              @forelse(Auth::user()->unreadNotifications->take(5) as $notif)
                 <li class="px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700">
-                    <a href="{{ $notif->data['url'] ?? '#' }}" class="block">
-                        <div class="font-bold text-gray-800 dark:text-white">
-                            {{ $notif->data['title'] ?? 'Notification' }}
-                        </div>
-                        <div class="text-gray-600 dark:text-gray-400">
-                            {{ $notif->data['body'] ?? '' }}
-                        </div>
-                        <div class="text-xs text-right text-gray-400 mt-1">
-                            {{ $notif->created_at->diffForHumans() }}
-                        </div>
-                    </a>
+                  <a href="{{ $notif->data['url'] ?? '#' }}" class="block">
+                    <div class="font-bold text-gray-800 dark:text-white">
+                      {{ $notif->data['title'] ?? 'Notification' }}
+                    </div>
+                    <div class="text-gray-600 dark:text-gray-400">
+                      {{ $notif->data['body'] ?? '' }}
+                    </div>
+                    <div class="text-xs text-right text-gray-400 mt-1">
+                      {{ $notif->created_at->diffForHumans() }}
+                    </div>
+                  </a>
                 </li>
-            @empty
+              @empty
                 <li class="px-4 py-4 text-center text-gray-500 dark:text-gray-400">No new notifications.</li>
-            @endforelse
-        </ul>
-        <div class="text-center px-4 py-2 bg-gray-50 dark:bg-gray-700 border-t dark:border-gray-600">
-            <a href="{{ route('notifications.all') }}" class="text-xs text-blue-600 hover:underline">
+              @endforelse
+            </ul>
+            <div class="text-center px-4 py-2 bg-gray-50 dark:bg-gray-700 border-t dark:border-gray-600">
+              <a href="{{ route('notifications.all') }}" class="text-xs text-blue-600 hover:underline">
                 View All
-            </a>
+              </a>
+            </div>
+          </div>
         </div>
-    </div>
-</div>
+        @endauth
 
+        <!-- Dark mode toggle -->
+        <button @click="darkMode = !darkMode"
+                class="ml-2 px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-sm">
+          <span x-text="darkMode ? '☀ Light' : '🌙 Dark'"></span>
+        </button>
+      </nav>
+    </header>
 
     <!-- Page Content -->
     <main class="flex-1 p-4 md:p-6">
@@ -118,8 +143,8 @@
       &copy; 2025 DobiPulse. All rights reserved.
     </footer>
   </div>
-@yield('scripts')
 
+  @yield('scripts')
   @stack('scripts')
 </body>
 </html>
