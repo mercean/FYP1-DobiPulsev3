@@ -24,6 +24,37 @@
                 🧼 Start a New Laundry Session
             </a>
         </div>
+@if($promos->isNotEmpty())
+    <div class="bg-yellow-100 dark:bg-yellow-800 border-l-4 border-yellow-500 text-yellow-900 dark:text-yellow-100 p-4 mb-6 rounded shadow">
+        <h3 class="text-lg font-bold mb-2">🎉 Current Promotions</h3>
+        <ul class="list-disc pl-5 text-sm">
+@foreach ($promos as $promo)
+    @if ($promo->promo_image)
+        <img src="{{ asset('storage/' . $promo->promo_image) }}" alt="Promo Image" class="w-full max-h-48 object-cover mb-2 rounded-xl shadow">
+    @endif
+
+    <li class="mb-4">
+        <strong class="text-lg">{{ $promo->title }}</strong><br>
+        <span class="text-sm">{{ $promo->description }}</span><br>
+        <span class="text-xs text-gray-600 dark:text-gray-300">
+            {{ $promo->start_date->format('M d') }} - {{ $promo->end_date->format('M d, Y') }}
+        </span><br>
+        @if ($promo->type === 'percent')
+            <span class="text-green-700 dark:text-green-300 font-semibold">{{ $promo->value }}% off</span>
+        @else
+            <span class="text-green-700 dark:text-green-300 font-semibold">RM{{ number_format($promo->value, 2) }} off</span>
+        @endif
+
+        @if($promo->code)
+            <div class="mt-1 text-xs">
+                Use Code: <span class="bg-white text-black px-2 py-1 rounded font-mono">{{ $promo->code }}</span>
+            </div>
+        @elseif($promo->auto_apply)
+            <div class="mt-1 text-xs text-green-600 dark:text-green-400 font-semibold">Auto Applied at Checkout</div>
+        @endif
+    </li>
+@endforeach
+
 
         @php
             $ongoingOrder = $orders->where('status', 'processing')->sortByDesc('created_at')->first();
