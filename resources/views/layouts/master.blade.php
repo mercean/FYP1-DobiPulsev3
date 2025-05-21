@@ -12,7 +12,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DobiPulse</title>
-  @vite(['resources/css/app.css', 'resources/js/app.js'])
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <style>[x-cloak] { display: none !important; }</style>
@@ -143,8 +142,22 @@
       &copy; 2025 DobiPulse. All rights reserved.
     </footer>
   </div>
+  
+<!-- before vite -->
+@auth
+<script>
+    window.Laravel = {
+        userId: {{ Auth::id() }}
+    };
+</script>
+@endauth
 
-  @yield('scripts')
-  @stack('scripts')
+<!-- In layouts/master.blade.php head section -->
+@vite(['resources/css/app.css', 'resources/js/app.js'])
+
+
+
+@yield('scripts')
+@stack('scripts')
 </body>
 </html>

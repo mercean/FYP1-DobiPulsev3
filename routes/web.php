@@ -77,6 +77,7 @@ Route::post('/notifications/mark-all-read', function () {
     // Order Flow
     Route::get('/orders/new', [OrderController::class, 'createOrder'])->name('orders.create');
     Route::post('/orders/store', [OrderController::class, 'store'])->name('orders.store');
+    Route::get('/orders/{id}', [OrderController::class, 'show'])->name('orders.show');
     Route::delete('/orders/{id}', [OrderController::class, 'destroy'])->name('orders.destroy');
 
 
@@ -144,7 +145,6 @@ Route::post('/notifications/mark-all-read', function () {
 
     // Profile
     Route::get('/profile/edit', [RegisterController::class, 'showEditProfileForm'])->name('edit.profile');
-    Route::post('/profile/edit', [RegisterController::class, 'updateProfile'])->name('update.profile');
 
     // Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');

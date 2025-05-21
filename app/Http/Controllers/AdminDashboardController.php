@@ -138,6 +138,7 @@ class AdminDashboardController extends Controller
                 }
     
         return redirect()->route('admin.dashboard')->with('status', 'Order status updated!');
+            }
     }
     
     
@@ -330,5 +331,5 @@ public function bulkOrders(Request $request)
     // Return the view with the bulkOrders data
     return view('admin.bulkOrders', compact('bulkOrders'));
 }
-
 }
+

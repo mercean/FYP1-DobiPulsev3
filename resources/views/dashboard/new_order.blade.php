@@ -5,7 +5,7 @@
     @include('components.regular.sidebar')
 
     <div class="text-center mb-10">
-        <h2 class="text-3xl font-bold text-gray-800 dark:text-white">🧺 Shoose Machines for Your Session</h2>
+        <h2 class="text-3xl font-bold text-gray-800 dark:text-white">🧺 Choose Machines for Your Session</h2>
         <p class="text-gray-500 dark:text-gray-300 mt-1">Select one or more machines and set their time</p>
     </div>
 
@@ -39,7 +39,6 @@
                         @foreach ($machines as $machine)
          {{-- DEBUG --}}
 
-<pre style="color:white;">{{ json_encode($machine->active_order) }}</pre>
 
 
                             @php

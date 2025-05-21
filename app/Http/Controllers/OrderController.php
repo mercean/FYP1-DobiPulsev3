@@ -93,4 +93,10 @@ class OrderController extends Controller
 
         return redirect()->back()->with('success', 'Order cancelled successfully.');
     }
+        public function show($id)
+    {
+        $order = Order::findOrFail($id);
+        return view('orders.show', compact('order'));
+    }
+
 }
