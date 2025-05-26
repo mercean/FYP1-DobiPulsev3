@@ -12,6 +12,7 @@ use App\Models\Promotion;
 
 
 
+
 class DashboardController extends Controller
 {
     /**
@@ -27,7 +28,7 @@ class DashboardController extends Controller
         } elseif ($user->account_type === 'bulk') {
             return redirect()->route('bulk.dashboard'); // Redirect to bulk dashboard
         } elseif ($user->account_type === 'admin') {
-            return redirect()->route('admin.dashboard'); // Redirect to admin dashboard
+            return redirect('/admin/bulk-orders');
         }
         
         // If user doesn't have a role or is not recognized, send them to the home page
