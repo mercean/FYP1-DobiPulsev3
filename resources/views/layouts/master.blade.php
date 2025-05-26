@@ -1,7 +1,16 @@
+@php
+    $isGuestPage = $isGuestPage ?? false;
+@endphp
+
+
 <!-- MASTER BLADE TEMPLATE (layouts/master.blade.php) -->
 <!DOCTYPE html>
 <html lang="en"
-      x-data="{ darkMode: localStorage.getItem('darkMode') === 'true', showSidebar: window.innerWidth >= 768 }"
+            x-data="{
+          darkMode: localStorage.getItem('darkMode') === 'true',
+          showSidebar: window.innerWidth >= 768,
+          sidebarHovered: false
+      }"
       x-init="
         $watch('darkMode', val => localStorage.setItem('darkMode', val));
         window.addEventListener('resize', () => showSidebar = window.innerWidth >= 768);
@@ -18,19 +27,24 @@
 </head>
 <body class="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white transition-all duration-300 flex">
 
-  <!-- SIDEBAR ROLE CHECK -->
-  @auth
-    @if (Auth::user()->account_type === 'regular')
-      @include('components.regular.sidebar')
-    @elseif (Auth::user()->account_type === 'bulk')
-      @include('components.bulk.sidebar')
-    @elseif (Auth::user()->account_type === 'admin')
-      @include('components.admin.sidebar')
-    @endif
-  @endauth
+@if (!$isGuestPage)
+    {{-- Sidebar --}}
+    @auth
+        @if (Auth::user()->account_type === 'regular')
+            @include('components.regular.sidebar')
+        @elseif (Auth::user()->account_type === 'bulk')
+            @include('components.bulk.sidebar')
+        @elseif (Auth::user()->account_type === 'admin')
+            @include('components.admin.sidebar')
+        @endif
+    @endauth
+@endif
+
+
+
 
   <!-- Main Content Wrapper -->
-  <div :class="showSidebar ? 'md:ml-64' : 'md:ml-0'" class="flex-1 flex flex-col transition-all duration-300 min-h-screen">
+<div :class="(showSidebar || sidebarHovered) ? 'md:ml-64' : 'md:ml-0'" class="flex-1 flex flex-col transition-all duration-300 min-h-screen">
 
     <!-- Navbar -->
     <header class="bg-white dark:bg-gray-800 shadow px-4 py-4 flex items-center justify-between md:px-8 sticky top-0 z-30">

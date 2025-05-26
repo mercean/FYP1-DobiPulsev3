@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Promotion;
-use Intervention\Image\Facades\Image;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
+
 
 class PromotionController extends Controller
 {
@@ -22,63 +24,35 @@ class PromotionController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'type' => 'required|in:fixed,percent',
-            'value' => 'required|numeric|min:0.01',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'auto_apply' => 'boolean',
-            'code' => 'nullable|string|max:50',
-            'promo_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-        ]);
+{
+    $validated = $request->validate([
+        'title' => 'required|string|max:255',
+        'description' => 'nullable|string',
+        'type' => 'required|in:fixed,percent',
+        'value' => 'required|numeric|min:0.01',
+        'start_date' => 'required|date',
+        'end_date' => 'required|date|after_or_equal:start_date',
+        'auto_apply' => 'boolean',
+        'code' => 'nullable|string|max:50',
+        'promo_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    ]);
 
-        if ($request->hasFile('promo_image')) {
-            $image = $request->file('promo_image');
-            $filename = time() . '.' . $image->getClientOriginalExtension();
-            $path = storage_path('app/public/promotions/' . $filename);
+    if ($request->hasFile('promo_image')) {
+        $image = $request->file('promo_image');
+        $filename = time() . '.' . $image->getClientOriginalExtension();
+        $path = storage_path('app/public/promotions/' . $filename);
 
-            Image::make($image)->resize(800, 400)->save($path);
-            $validated['promo_image'] = 'promotions/' . $filename;
-        }
+        // ✅ Create with GD driver
+        $manager = new ImageManager(new Driver());
+        $manager->read($image)->resize(800, 400)->save($path);
 
-        Promotion::create($validated);
-        return redirect()->route('promotions.index')->with('success', 'Promotion added.');
+        $validated['promo_image'] = 'promotions/' . $filename;
     }
 
-    public function edit(Promotion $promotion)
-    {
-        return view('admin.promotions.edit', compact('promotion'));
-    }
+    Promotion::create($validated);
+    return redirect()->route('promotions.index')->with('success', 'Promotion added.');
+}
 
-    public function update(Request $request, Promotion $promotion)
-    {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'type' => 'required|in:fixed,percent',
-            'value' => 'required|numeric|min:0.01',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'auto_apply' => 'boolean',
-            'code' => 'nullable|string|max:50',
-            'promo_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-        ]);
-
-        if ($request->hasFile('promo_image')) {
-            $image = $request->file('promo_image');
-            $filename = time() . '.' . $image->getClientOriginalExtension();
-            $path = storage_path('app/public/promotions/' . $filename);
-
-            Image::make($image)->resize(800, 400)->save($path);
-            $validated['promo_image'] = 'promotions/' . $filename;
-        }
-
-        $promotion->update($validated);
-        return redirect()->route('promotions.index')->with('success', 'Promotion updated.');
-    }
 
     public function destroy(Promotion $promotion)
     {
