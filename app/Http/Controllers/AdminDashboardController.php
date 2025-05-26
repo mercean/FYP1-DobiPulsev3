@@ -13,96 +13,90 @@ use Stripe\BalanceTransaction;
 use League\Csv\Writer; // Add this line at the top of your controller
 use Illuminate\Http\Response;
 use App\Jobs\SendPickupReminder; // ⬅️ Add this at the top
+use Carbon\Carbon;
 
 
 
 class AdminDashboardController extends Controller
 {
-    public function index(Request $request)
-    {
-        $status = $request->input('status');
-        
-        $bulkOrdersQuery = BulkOrder::with('user');
-        
-        // Apply status filter if provided
-        if ($status) {
-            $bulkOrdersQuery->where('status', $status);
-        }
-        
-        $bulkOrders = $bulkOrdersQuery->get();
-    
-        // Add any other necessary logic for your controller
-    
-        // Get total counts
-        $totalUsers = User::count();
-        $totalOrders = Order::count();
-        $totalBulkOrders = BulkOrder::count();
-        
-        // Order Status Analysis
-        $statusDistribution = BulkOrder::select('status', \DB::raw('count(*) as count'))
-                                      ->groupBy('status')
-                                      ->get();
-        
-        // Order Completion Rate
-        $totalProcessedOrders = BulkOrder::where('status', 'completed')->count();
-        $orderCompletionRate = $totalOrders > 0 ? ($totalProcessedOrders / $totalOrders) * 100 : 0;
-        
-        // Time to Complete Orders (average time between statuses)
-        $avgTimeToCompleteOrders = BulkOrder::whereIn('status', ['approved', 'completed'])
-                                            ->get()
-                                            ->map(function ($order) {
-                                                return \Carbon\Carbon::parse($order->updated_at)->diffInMinutes($order->created_at);
-                                            })
-                                            ->avg();
-        
-        // Fetch filters from the request
-        $search = $request->input('search');
-        
-        // Fetch filtered and searched bulk orders
-        $bulkOrdersQuery = BulkOrder::with('user');
-        
-        // Apply search filter (by Order ID or User Name)
-        if ($search) {
-            $bulkOrdersQuery->where(function($query) use ($search) {
-                $query->where('id', 'like', "%$search%")
-                      ->orWhereHas('user', function($q) use ($search) {
-                          $q->where('name', 'like', "%$search%");
-                      });
-            });
-        }
-        
-        // Fetch filtered bulk orders with applied filters
-        $bulkOrders = $bulkOrdersQuery->get();
-    
-        // Fetch all regular orders
-        $orders = Order::all(); // Fetch all regular orders
-        
-        // Fetch all users for the user management board
-        $usersQuery = User::query();
-        
-        // Apply search for users
-        if ($search) {
-            $usersQuery->where(function($query) use ($search) {
-                $query->where('name', 'like', "%$search%")
-                      ->orWhere('email', 'like', "%$search%");
-            });
-        }
-        
-        $users = $usersQuery->get();
-        
-        // Return view with the data
-        return view('admin.dashboard', compact(
-            'totalUsers', 
-            'totalOrders', 
-            'totalBulkOrders', 
-            'orders',  // Add the regular orders here
-            'bulkOrders', 
-            'users',
-            'statusDistribution',
-            'orderCompletionRate',
-            'avgTimeToCompleteOrders'
-        ));
+   public function index(Request $request)
+{
+    $status = $request->input('status');
+
+    $bulkOrdersQuery = BulkOrder::with('user');
+    if ($status) {
+        $bulkOrdersQuery->where('status', $status);
     }
+    $bulkOrders = $bulkOrdersQuery->get();
+
+    $totalUsers = User::count();
+    $totalOrders = Order::count();
+    $totalBulkOrders = BulkOrder::count();
+
+    $statusDistribution = BulkOrder::select('status', \DB::raw('count(*) as count'))
+                                  ->groupBy('status')
+                                  ->get();
+
+    $totalProcessedOrders = BulkOrder::where('status', 'completed')->count();
+    $orderCompletionRate = $totalOrders > 0 ? ($totalProcessedOrders / $totalOrders) * 100 : 0;
+
+    $avgTimeToCompleteOrders = BulkOrder::whereIn('status', ['approved', 'completed'])
+        ->get()
+        ->map(function ($order) {
+            return \Carbon\Carbon::parse($order->updated_at)->diffInMinutes($order->created_at);
+        })
+        ->avg();
+
+    $search = $request->input('search');
+
+    $bulkOrdersQuery = BulkOrder::with('user');
+    if ($search) {
+        $bulkOrdersQuery->where(function($query) use ($search) {
+            $query->where('id', 'like', "%$search%")
+                  ->orWhereHas('user', function($q) use ($search) {
+                      $q->where('name', 'like', "%$search%");
+                  });
+        });
+    }
+    $bulkOrders = $bulkOrdersQuery->get();
+
+    $orders = Order::all();
+
+    $usersQuery = User::query();
+    if ($search) {
+        $usersQuery->where(function($query) use ($search) {
+            $query->where('name', 'like', "%$search%")
+                  ->orWhere('email', 'like', "%$search%");
+        });
+    }
+    $users = $usersQuery->get();
+
+    // ✅ ADD THIS WEEKLY USAGE LOGIC HERE
+    $startOfWeek = Carbon::now()->startOfWeek();
+    $dailyLabels = [];
+    $dailyCounts = [];
+    for ($i = 0; $i < 7; $i++) {
+        $day = $startOfWeek->copy()->addDays($i);
+        $dailyLabels[] = $day->translatedFormat('D'); // Mon, Tue, ...
+        $dailyCounts[] = Order::whereDate('created_at', $day)->count();
+    }
+
+    // ✅ Now include them in your view
+    return view('admin.dashboard', compact(
+        'totalUsers', 
+        'totalOrders', 
+        'totalBulkOrders', 
+        'orders', 
+        'bulkOrders', 
+        'users',
+        'statusDistribution',
+        'orderCompletionRate',
+        'avgTimeToCompleteOrders',
+        'dailyLabels',
+        'dailyCounts' // ✅ Important
+    ));
+}
+
     
 
     public function updateOrderStatus($id, $type, Request $request)

@@ -61,7 +61,14 @@
           <a href="{{ url('/') }}" class="hover:underline text-sm">Home</a>
           <a href="{{ route('services') }}" class="hover:underline text-sm">Services</a>
           <a href="{{ route('about') }}" class="hover:underline text-sm">About</a>
-          <a href="{{ route('edit.profile') }}" class="hover:underline text-sm">My Account</a>
+                    <a href="{{ route('edit.profile') }}" class="flex items-center space-x-2 hover:underline text-sm">
+              <img src="{{ Auth::user()->avatar 
+                          ? asset('storage/' . Auth::user()->avatar) 
+                          : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=0D8ABC&color=fff&size=32' }}" 
+                  alt="Profile" 
+                  class="w-8 h-8 rounded-full">
+              <span>{{ Auth::user()->name }}</span>
+          </a>
 
           <form action="{{ route('logout') }}" method="POST" class="inline">
             @csrf

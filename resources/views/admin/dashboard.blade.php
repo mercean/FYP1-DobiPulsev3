@@ -193,29 +193,32 @@
 <!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    const lineCtx = document.getElementById('lineChart');
-    if (lineCtx) {
-        new Chart(lineCtx, {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
-                datasets: [{
-                    label: 'Normal Orders',
-                    data: [10, 20, 15, 25, 30],
-                    borderColor: 'rgba(99, 102, 241, 1)',
-                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { display: true }
-                }
+   // After including Chart.js (already included in master layout:contentReference[oaicite:5]{index=5})
+const lineCtx = document.getElementById('lineChart');
+if (lineCtx) {
+    new Chart(lineCtx, {
+        type: 'line',
+        data: {
+            labels: {!! json_encode($dailyLabels) !!},      // e.g. ["Mon","Tue",...]
+            datasets: [{
+                label: 'Machines Used per Day',
+                data: {!! json_encode($dailyCounts) !!},    // e.g. [5, 8, 3, ...] orders per day
+                borderColor: 'rgba(54, 162, 235, 1)',       // blue line for clarity
+                backgroundColor: 'rgba(54, 162, 235, 0.2)', // translucent fill
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: true } },
+            scales: { 
+              y: { beginAtZero: true, stepSize: 1, max: 12 }  // y-axis from 0 to 12+ (12 machines)
             }
-        });
-    }
+        }
+    });
+}
+
 
     const barCtx = document.getElementById('horizontalBarChart');
     if (barCtx) {

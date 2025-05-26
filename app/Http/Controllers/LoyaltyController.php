@@ -129,11 +129,29 @@ class LoyaltyController extends Controller
     }
     public function showLoyaltyPage()
 {
-    $user = Auth::user();
-    $points = LoyaltyPoint::where('user_id', $user->id)->sum('points');
-    $coupons = Coupon::where('user_id', $user->id)->latest()->get();
+// In LoyaltyController@showLoyaltyPage
+$user = Auth::user();
+$points = LoyaltyPoint::where('user_id', $user->id)->sum('points');
+$loyaltyLogs = LoyaltyPoint::where('user_id', $user->id)
+                 ->orderBy('created_at', 'desc')->get();
+$coupons = Coupon::where('user_id', $user->id)->latest()->get();
 
-    return view('Regular.loyalty_points', compact('points', 'coupons'));
+// Optional: map coupons to their reward for points required
+$redemptions = [];
+foreach ($coupons as $c) {
+    $reward = RedemptionReward::where('type', $c->type)
+               ->where('reward_value', $c->value)->first();
+    if ($reward) {
+        $redemptions[] = [
+            'date'    => $c->created_at,
+            'points'  => $reward->points_required,
+            'title'   => $reward->title,
+            'code'    => $c->code,
+        ];
+    }
+}
+return view('Regular.loyalty_points', compact('points','loyaltyLogs','coupons','redemptions'));
+
 }
 
 }
