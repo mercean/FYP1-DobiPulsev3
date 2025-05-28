@@ -1,13 +1,10 @@
-
-
 @extends('layouts.master')
 
 @section('content')
 <div class="relative min-h-screen flex items-center justify-center overflow-hidden">
-    <!-- Background Layer -->
-    <div class="absolute inset-0 z-0">
-        <img src="{{ asset('images/cloth.jpg') }}" alt="Laundry Background" class="w-full h-full object-cover">
-        <div class="absolute inset-0 bg-gradient-to-br from-white/70 via-white/50 to-white/30 dark:from-black/70 dark:via-black/50 dark:to-black/30 backdrop-blur-sm"></div>
+    <!-- Animated Background Gradient Layer -->
+    <div class="absolute inset-0 z-0 animate-gradient bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
     </div>
 
     <!-- Login Card -->
@@ -69,9 +66,17 @@
         from { opacity: 0; transform: translateY(30px); }
         to { opacity: 1; transform: translateY(0); }
     }
-
     .animate-fade-in {
         animation: fade-in 0.8s ease-out both;
+    }
+    @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    .animate-gradient {
+        background-size: 200% 200%;
+        animation: gradient 15s ease infinite;
     }
 </style>
 @endpush

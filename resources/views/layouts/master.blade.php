@@ -1,5 +1,5 @@
 @php
-    $isGuestPage = $isGuestPage ?? false;
+    $isGuestPage = $isGuestPage ?? in_array(Route::currentRouteName(), ['login', 'register', 'password.request', 'password.email', 'password.reset']);
 @endphp
 
 
@@ -44,7 +44,7 @@
 
 
   <!-- Main Content Wrapper -->
-<div :class="(showSidebar || sidebarHovered) ? 'md:ml-64' : 'md:ml-0'" class="flex-1 flex flex-col transition-all duration-300 min-h-screen">
+<div :class="(showSidebar || sidebarHovered) && !{{ $isGuestPage ? 'true' : 'false' }} ? 'md:ml-64' : ''" class="flex-1 flex flex-col transition-all duration-300 min-h-screen">
 
     <!-- Navbar -->
     <header class="bg-white dark:bg-gray-800 shadow px-4 py-4 flex items-center justify-between md:px-8 sticky top-0 z-30">
@@ -64,43 +64,74 @@
         </button>
       @endauth
 
-      <!-- Top Navigation -->
-      <nav class="flex-1 flex justify-end items-center space-x-6">
+<!-- Top Navigation -->
+<nav class="flex-1 flex items-center justify-between">
+    <!-- Left: Brand -->
+    <div class="flex items-center space-x-2 text-xl font-bold text-blue-600 dark:text-blue-400">
+        <x-heroicon-o-sparkles class="w-6 h-6" />
+        <span>DobiPulse</span>
+    </div>
+
+    <!-- Right: Links -->
+  <div class="flex items-center gap-6 text-sm pr-4">
         @guest
-          <a href="{{ route('register') }}" class="hover:underline text-sm">Register</a>
-          <a href="{{ route('login') }}" class="hover:underline text-sm">Login</a>
+            <a href="{{ url('/') }}" class="flex items-center gap-1 text-gray-700 dark:text-gray-200 hover:underline font-semibold">
+                <x-heroicon-o-home class="w-5 h-5" />
+                HomePage
+            </a>
+            <a href="{{ route('register') }}" class="flex items-center gap-1 hover:underline">
+                <x-heroicon-o-user-plus class="w-5 h-5" />
+                Register
+            </a>
+            <a href="{{ route('login') }}" class="flex items-center gap-1 hover:underline">
+                <x-heroicon-o-lock-closed class="w-5 h-5" />
+                Login
+            </a>
         @endguest
 
         @auth
-          <a href="{{ url('/') }}" class="hover:underline text-sm">Home</a>
-          <a href="{{ route('services') }}" class="hover:underline text-sm">Services</a>
-          <a href="{{ route('about') }}" class="hover:underline text-sm">About</a>
-                    <a href="{{ route('edit.profile') }}" class="flex items-center space-x-2 hover:underline text-sm">
-              <img src="{{ Auth::user()->avatar 
-                          ? asset('storage/' . Auth::user()->avatar) 
-                          : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=0D8ABC&color=fff&size=32' }}" 
-                  alt="Profile" 
-                  class="w-8 h-8 rounded-full">
-              <span>{{ Auth::user()->name }}</span>
-          </a>
-
-          <form action="{{ route('logout') }}" method="POST" class="inline">
-            @csrf
-            <button type="submit" class="hover:underline text-sm">Logout</button>
-          </form>
+            <a href="{{ url('/') }}" class="flex items-center gap-1 hover:underline">
+                <x-heroicon-o-home class="w-5 h-5" />
+                Home
+            </a>
+            <a href="{{ route('services') }}" class="flex items-center gap-1 hover:underline">
+                <x-heroicon-o-cog class="w-5 h-5" />
+                Services
+            </a>
+            <a href="{{ route('about') }}" class="flex items-center gap-1 hover:underline">
+                <x-heroicon-o-information-circle class="w-5 h-5" />
+                About
+            </a>
+            <a href="{{ route('edit.profile') }}" class="flex items-center gap-1 hover:underline">
+                <img src="{{ Auth::user()->avatar 
+                            ? asset('storage/' . Auth::user()->avatar) 
+                            : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=0D8ABC&color=fff&size=32' }}" 
+                     alt="Profile" class="w-6 h-6 rounded-full border">
+                {{ Auth::user()->name }}
+            </a>
+            <form action="{{ route('logout') }}" method="POST" class="inline">
+                @csrf
+                <button type="submit" class="flex items-center gap-1 hover:underline">
+                    <x-heroicon-o-arrow-left-on-rectangle class="w-5 h-5" />
+                    Logout
+                </button>
+            </form>
         @endauth
+    </div>
+</nav>
+
 
         <!-- 🔔 Notification Bell -->
         @auth
-        <div class="relative" x-data="{ open: false }">
+        <div class="relative ml-4" x-data="{ open: false }">
           <button @click="open = !open" class="relative focus:outline-none">
             <svg class="w-6 h-6 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor" stroke-width="2"
-                 viewBox="0 0 24 24">
+                viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round"
                     d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 
-                       6.002 0 00-4-5.659V4a2 2 0 00-4 0v1.341C7.67 
-                       6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 
-                       1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
+                      6.002 0 00-4-5.659V4a2 2 0 00-4 0v1.341C7.67 
+                      6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 
+                      1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
               </path>
             </svg>
             @if(Auth::user()->unreadNotifications->count())
@@ -109,6 +140,7 @@
               </span>
             @endif
           </button>
+
 
           <!-- Dropdown -->
           <div x-show="open" @click.away="open = false"
@@ -153,10 +185,14 @@
       </nav>
     </header>
 
-    <!-- Page Content -->
-    <main class="flex-1 p-4 md:p-6">
+ <!-- Page Content -->
+@if ($isGuestPage)
+  @yield('content')
+@else
+  <main class="flex-1 p-4 md:p-6">
       @yield('content')
-    </main>
+  </main>
+@endif
 
     <!-- Footer -->
     <footer class="text-center text-sm py-6 text-gray-600 dark:text-gray-400">

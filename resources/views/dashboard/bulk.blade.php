@@ -20,25 +20,29 @@
 
         <!-- Profile + Quick Action -->
         <div class="grid md:grid-cols-2 gap-6">
+            <!-- Profile -->
             <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow">
-            <h2 class="text-lg font-semibold mb-4">Profile Summary</h2>
-            <div class="flex items-center gap-4">
-            <img src="{{ Auth::user()->avatar ? asset('storage/' . Auth::user()->avatar) : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=0D8ABC&color=fff&size=80' }}" class="w-16 h-16 rounded-full border-4 border-blue-500 shadow-md">
-                <div>
-                    <p class="text-lg font-semibold">{{ Auth::user()->name }}</p>
-                    <p class="text-sm text-gray-600 dark:text-gray-300">{{ Auth::user()->email }}</p>
+                <h2 class="text-lg font-semibold mb-4">Profile Summary</h2>
+                <div class="flex items-center gap-4">
+                    <img src="{{ Auth::user()->avatar ? asset('storage/' . Auth::user()->avatar) : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=0D8ABC&color=fff&size=80' }}" class="w-16 h-16 rounded-full border-4 border-blue-500 shadow-md">
+                    <div>
+                        <p class="text-lg font-semibold">{{ Auth::user()->name }}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">{{ Auth::user()->email }}</p>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <a href="{{ route('edit.profile') }}" class="text-blue-600 hover:underline text-sm">Update Profile Info</a>
                 </div>
             </div>
-            <div class="mt-4">
-                <a href="{{ route('edit.profile') }}" class="text-blue-600 hover:underline text-sm">Update Profile Info</a>
-            </div>
-            </div>
 
-
-            <div class="bg-gradient-to-r from-purple-500 to-indigo-500 text-white p-6 rounded-2xl shadow flex flex-col justify-between">
-                <h2 class="text-lg font-semibold">Quick Action</h2>
-                <p class="mt-2 mb-4">Have a new bulk order? Start right away.</p>
-                <a href="{{ route('bulk.orders.create') }}" class="bg-white text-purple-700 px-4 py-2 rounded shadow hover:bg-gray-100 text-center">
+            <!-- Quick Action -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow flex flex-col justify-between border-l-4 border-purple-500">
+                <div class="flex items-center gap-2 text-purple-600 dark:text-purple-400 mb-2">
+                    <x-heroicon-o-plus-circle class="w-6 h-6" />
+                    <h2 class="text-lg font-semibold">Quick Action</h2>
+                </div>
+                <p class="mb-4 text-gray-700 dark:text-gray-300">Have a new bulk order? Start right away.</p>
+                <a href="{{ route('bulk.orders.create') }}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded shadow text-center transition">
                     Request New Bulk Order
                 </a>
             </div>
@@ -46,7 +50,7 @@
 
         <!-- Order Summary Cards -->
         @php
-            $totalBulkOrders = $orders->total(); // from paginator
+            $totalBulkOrders = $orders->total();
             $pendingBulkOrders = $orders->filter(fn($o) => $o->status === 'pending')->count();
             $totalBulkWeight = $orders->sum('load_kg');
         @endphp
@@ -68,13 +72,19 @@
 
         <!-- Optional Tip -->
         <div class="bg-yellow-100 dark:bg-yellow-800 border-l-4 border-yellow-500 text-yellow-700 dark:text-yellow-200 p-4 rounded-xl shadow-md">
-            <p class="font-bold mb-1">💡 Tip:</p>
+            <div class="flex items-center gap-2 mb-1">
+                <x-heroicon-o-light-bulb class="w-5 h-5" />
+                <p class="font-bold">Tip:</p>
+            </div>
             <p>Submit your bulk laundry requests before 8PM for same-day processing.</p>
         </div>
 
         <!-- Bulk Orders Table -->
         <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">📦 Your Bulk Orders</h2>
+            <div class="flex items-center gap-2 mb-4 text-gray-800 dark:text-white">
+                <x-heroicon-o-archive-box class="w-6 h-6" />
+                <h2 class="text-xl font-semibold">Your Bulk Orders</h2>
+            </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full text-sm text-left text-gray-600 dark:text-gray-300">
                     <thead class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white">

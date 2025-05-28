@@ -4,26 +4,39 @@
 <div x-data="{ showHistory: false }" class="flex min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-300">
     @include('components.regular.sidebar')
 
-    <main class="flex-1 p-6 lg:p-10 space-y-8 container mx-auto">
-        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-            <div class="flex items-center gap-4">
-            <img src="{{ Auth::user()->avatar ? asset('storage/' . Auth::user()->avatar) : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=0D8ABC&color=fff&size=80' }}" class="w-16 h-16 rounded-full border-4 border-blue-500 shadow-md">
-                <div>
-                    <h1 class="text-2xl lg:text-3xl font-bold">Welcome, {{ Auth::user()->name }}</h1>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Here's your personalized laundry dashboard.</p>
-                </div>
+<main class="flex-1 p-6 lg:p-10 space-y-8 container mx-auto">
+    <!-- Welcome Header -->
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div class="flex items-center gap-4">
+            <img src="{{ Auth::user()->avatar 
+                        ? asset('storage/' . Auth::user()->avatar) 
+                        : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=0D8ABC&color=fff&size=80' }}" 
+                 class="w-16 h-16 rounded-full border-4 border-blue-500 shadow-md object-cover">
+            <div>
+                <h1 class="text-2xl lg:text-3xl font-bold text-gray-800 dark:text-white">
+                    Welcome, {{ Auth::user()->name }}
+                </h1>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    Here’s your personalized laundry dashboard.
+                </p>
             </div>
-            <form method="GET" class="text-sm">
-
-            </form>
         </div>
+        <!-- Reserved for future filters or Livewire search -->
+        <form method="GET" class="text-sm"></form>
+    </div>
 
-        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
-            <p class="text-base font-bold text-gray-700 dark:text-gray-200">Need to wash or dry clothes? Let’s get started.</p>
-            <a href="{{ route('orders.create') }}" class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow transition">
-                🧼 Start a New Laundry Session
-            </a>
-        </div>
+    <!-- CTA Section -->
+    <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
+        <p class="text-base font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+            <x-heroicon-o-information-circle class="w-5 h-5 text-blue-500" />
+            Need to wash or dry clothes? Let’s get started.
+        </p>
+        <a href="{{ route('orders.create') }}"
+           class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow transition">
+            <x-heroicon-o-plus-circle class="w-5 h-5" />
+            Start a New Laundry Session
+        </a>
+    </div>
 @if($promos->isNotEmpty())
     <div class="bg-yellow-100 dark:bg-yellow-800 border-l-4 border-yellow-500 text-yellow-900 dark:text-yellow-100 p-4 mb-6 rounded shadow">
         <h3 class="text-lg font-bold mb-2">🎉 Current Promotions</h3>
@@ -61,13 +74,14 @@
 
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <x-dashboard.card title="Orders" :value="$orders->count()" />
-            <x-dashboard.card title="Total Spent" :value="'RM' . $orders->sum('total_amount')" />
-            <x-dashboard.points :points="$points" :max="100" />
+            <x-dashboard.card title="Orders" :value="$orders->count()" icon="o-clipboard-document-list" />
+            <x-dashboard.card title="Total Spent" :value="'RM' . $orders->sum('total_amount')" icon="o-banknotes" />
+            <x-dashboard.points :points="$points" icon="o-star" />
+
         </div>
 
         <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow">
-            <h2 class="text-lg font-semibold mb-4">👤 Profile Summary</h2>
+            <h2 class="text-lg font-semibold mb-4"> Profile Summary</h2>
             <div class="flex items-center gap-4">
             <img src="{{ Auth::user()->avatar ? asset('storage/' . Auth::user()->avatar) : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=0D8ABC&color=fff&size=80' }}" class="w-16 h-16 rounded-full border-4 border-blue-500 shadow-md">
                 <div>
