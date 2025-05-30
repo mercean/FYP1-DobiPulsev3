@@ -8,6 +8,12 @@ use App\Models\Order;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Machine;
 use App\Models\User;
+use App\Jobs\MarkMachineAvailable;
+use App\Jobs\ExpireUnpaidOrder;
+use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\LoyaltyPoint;
+
+
 
 class OrderController extends Controller
 {
@@ -40,14 +46,14 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'machine_ids'   => 'required|array',
-            'machine_ids.*' => 'required|integer|exists:machines,id',
-            'required_times' => 'required|array',
-            'required_times.*' => 'required|integer|min:30|max:120',
-            'total_price'   => 'required|numeric',
+            'machine_ids'     => 'required|array',
+            'machine_ids.*'   => 'required|integer|exists:machines,id',
+            'required_times'  => 'required|array',
+            'required_times.*'=> 'required|integer|min:30|max:120',
+            'total_price'     => 'required|numeric',
         ]);
 
-        $userId = auth()->id();
+        $userId = auth()->id(); // Can be null for guest
         $orders = [];
 
         foreach ($request->machine_ids as $machineId) {
@@ -61,11 +67,14 @@ class OrderController extends Controller
             $rate = strtolower($machine->type) === 'dryer' ? 4.00 : 5.00;
             $price = ($time / 30) * $rate;
 
+            // Mark machine as in use
             $machine->status = 'in_use';
             $machine->save();
 
+            // Generate order
             $orderNumber = 'ORD-' . strtoupper(Str::random(6));
-            $orders[] = Order::create([
+
+            $order = Order::create([
                 'user_id'       => $userId,
                 'order_number'  => $orderNumber,
                 'machine_id'    => $machineId,
@@ -73,6 +82,11 @@ class OrderController extends Controller
                 'total_amount'  => $price,
                 'status'        => 'pending',
             ]);
+
+            // Dispatch timeout job to unlock after 30s if unpaid
+            ExpireUnpaidOrder::dispatch($order->id)->delay(now()->addSeconds(30));
+
+            $orders[] = $order;
         }
 
         // Convert array of order IDs to comma-separated string
@@ -93,10 +107,23 @@ class OrderController extends Controller
 
         return redirect()->back()->with('success', 'Order cancelled successfully.');
     }
-        public function show($id)
+
+    public function show($id)
     {
-        $order = Order::findOrFail($id);
-        return view('orders.show', compact('order'));
+        $order = Order::with('machine')->findOrFail($id);
+
+        $userPoints = \App\Models\LoyaltyPoint::where('user_id', $order->user_id)->sum('points');
+
+        return view('orders.show', compact('order', 'userPoints'));
     }
+
+    public function downloadReceipt($id)
+{
+    $order = Order::with('machine')->findOrFail($id);
+    $userPoints = LoyaltyPoint::where('user_id', $order->user_id)->sum('points');
+
+    $pdf = Pdf::loadView('pdf.receipt', compact('order', 'userPoints'))->setPaper('A4', 'portrait');
+    return $pdf->download('dobipulse_receipt_' . $order->id . '.pdf');
+}
 
 }

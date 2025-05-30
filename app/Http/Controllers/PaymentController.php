@@ -19,6 +19,8 @@ use App\Models\Promotion;
 use App\Notifications\PromotionAvailable;
 use App\Notifications\LoyaltyPointsUpdated;
 use App\Notifications\OrderStatusUpdated;
+use App\Jobs\ExpireUnpaidOrder;
+
 
 class PaymentController extends Controller
 {
@@ -68,12 +70,25 @@ class PaymentController extends Controller
     {
         $user = auth()->user();
         $ids = explode(',', $request->query('order_ids'));
-        $orders = Order::whereIn('id', $ids)->where('user_id', $user->id)->get();
 
-        $coupons = Coupon::where('user_id', $user->id)->where('used', false)->get();
+        // ✅ Replace this entire orders query block:
+        $orders = Order::whereIn('id', $ids)
+            ->when(auth()->check(), function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            }, function ($query) {
+                $query->whereNull('user_id'); // guests
+            })
+            ->get();
+
+        // ✅ Only show coupons if user is logged in
+        $coupons = $user
+            ? Coupon::where('user_id', $user->id)->where('used', false)->get()
+            : collect(); // empty collection for guests
 
         return view('orders.regular_payment', compact('orders', 'coupons'));
     }
+
+
 
     public function regularInitiate(Request $request)
     {
@@ -141,43 +156,47 @@ class PaymentController extends Controller
         }
     }
 
-    public function regularSuccess(Request $request)
-    {
-        $orderIds = $request->query('order_ids');
+public function regularSuccess(Request $request)
+{
+    $orderIds = $request->query('order_ids');
 
-        if ($orderIds) {
-            $ids = explode(',', $orderIds);
-            $orders = Order::whereIn('id', $ids)->get();
+    if ($orderIds) {
+        $ids = explode(',', $orderIds);
+        $orders = Order::whereIn('id', $ids)->get();
 
-            foreach ($orders as $order) {
-                $order->status = 'approved';
-                $order->end_time = Carbon::now()->addMinutes($order->required_time);
-                $order->save();
+        foreach ($orders as $order) {
+            $requiredTime = $order->required_time ?? 30;
+            $order->status = 'approved';
+            $order->end_time = Carbon::now()->addMinutes($requiredTime);
+            $order->save();
 
-                \App\Jobs\MarkMachineAvailable::dispatch($order->id)->delay($order->end_time);
+            MarkMachineAvailable::dispatch($order->id)->delay($order->end_time);
 
-                if ($order->machine_id) {
-                    $machine = Machine::find($order->machine_id);
-                    if ($machine) {
-                        $machine->status = 'in_use';
-                        $machine->save();
-                    }
-                }
+            if ($order->machine_id && ($machine = Machine::find($order->machine_id))) {
+                $machine->status = 'in_use';
+                $machine->save();
+            }
 
-                $points = ($order->required_time / 30) * 50;
+            $points = 0;
+            if ($order->user_id) {
+                $points = ($requiredTime / 30) * 50;
                 $loyalty = LoyaltyPoint::firstOrNew(['user_id' => $order->user_id]);
                 $loyalty->points = ($loyalty->points ?? 0) + $points;
                 $loyalty->expiry_date = now()->addMonths(6);
                 $loyalty->save();
+            }
 
-                $order->load('user');
-                Mail::to($order->user->email)->send(new PaymentReceipt($order));
+            $order->load('user');
 
-                // ✅ Notify user
+            $email = $order->user->email ?? session('guest_email');
+            if ($email) {
+                Mail::to($email)->send(new PaymentReceipt($order));
+            }
+
+            if ($order->user) {
                 $order->user->notify(new OrderStatusUpdated($order, 'Approved', 'regular'));
                 $order->user->notify(new LoyaltyPointsUpdated($points));
 
-                // ✅ Promotion notice
                 $promo = Promotion::where('auto_apply', true)
                     ->whereDate('start_date', '<=', now())
                     ->whereDate('end_date', '>=', now())
@@ -186,34 +205,43 @@ class PaymentController extends Controller
                     $order->user->notify(new PromotionAvailable($promo));
                 }
             }
-
-            return view('orders.payment_success', compact('orders'));
         }
 
-        $order = Order::findOrFail($request->order_id);
-        $order->status = 'approved';
-        $order->end_time = Carbon::now()->addMinutes($order->required_time);
-        $order->save();
+        session()->forget('guest_email');
+        return view('orders.payment_success', compact('orders'));
+    }
 
-        \App\Jobs\MarkMachineAvailable::dispatch($order->id)->delay($order->end_time);
+    // ✅ Single order flow
+    $order = Order::findOrFail($request->order_id);
+    $requiredTime = $order->required_time ?? 30;
+    $order->status = 'approved';
+    $order->end_time = Carbon::now()->addMinutes($requiredTime);
+    $order->save();
 
-        if ($order->machine_id) {
-            $machine = Machine::find($order->machine_id);
-            if ($machine) {
-                $machine->status = 'in_use';
-                $machine->save();
-            }
-        }
+    MarkMachineAvailable::dispatch($order->id)->delay($order->end_time);
 
-        $points = ($order->required_time / 30) * 50;
+    if ($order->machine_id && ($machine = Machine::find($order->machine_id))) {
+        $machine->status = 'in_use';
+        $machine->save();
+    }
+
+    $points = 0;
+    if ($order->user_id) {
+        $points = ($requiredTime / 30) * 50;
         $loyalty = LoyaltyPoint::firstOrNew(['user_id' => $order->user_id]);
         $loyalty->points = ($loyalty->points ?? 0) + $points;
         $loyalty->expiry_date = now()->addMonths(6);
         $loyalty->save();
+    }
 
-        $order->load('user');
-        Mail::to($order->user->email)->send(new PaymentReceipt($order));
+    $order->load('user');
+    $email = $order->user->email ?? session('guest_email');
+    if ($email) {
+        Mail::to($email)->send(new PaymentReceipt($order));
+        session()->forget('guest_email');
+    }
 
+    if ($order->user) {
         $order->user->notify(new OrderStatusUpdated($order, 'Approved', 'regular'));
         $order->user->notify(new LoyaltyPointsUpdated($points));
 
@@ -224,9 +252,13 @@ class PaymentController extends Controller
         if ($promo) {
             $order->user->notify(new PromotionAvailable($promo));
         }
-
-        \Log::info("✅ Single order approved", $order->toArray());
-
-        return view('orders.payment_success', compact('order'));
     }
+
+    \Log::info("✅ Single order approved", $order->toArray());
+
+    return view('orders.payment_success', compact('order'));
+}
+
+
+
 }

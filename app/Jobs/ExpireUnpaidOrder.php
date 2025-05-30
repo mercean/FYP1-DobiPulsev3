@@ -11,7 +11,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class MarkMachineAvailable implements ShouldQueue
+class ExpireUnpaidOrder implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -24,24 +24,29 @@ class MarkMachineAvailable implements ShouldQueue
 
     public function handle()
     {
-        Log::info("🧼 Running MarkMachineAvailable for Order #{$this->orderId}");
+        Log::info("⌛ Checking unpaid order #{$this->orderId}");
 
         $order = Order::find($this->orderId);
 
-        // ✅ Only unlock machine if order is approved (paid and completed)
-        if (!$order || $order->status !== 'approved') {
-            Log::info("⏭️ Skipping: Order #{$this->orderId} not approved or already handled.");
+        if (!$order) {
+            Log::warning("❌ Order #{$this->orderId} not found");
             return;
         }
+
+        if ($order->status !== 'pending') {
+            Log::info("⏭️ Order #{$this->orderId} already paid or cancelled");
+            return;
+        }
+
+        $order->delete();
+        Log::info("🗑️ Order #{$this->orderId} deleted (unpaid)");
 
         if ($order->machine_id) {
             $machine = Machine::find($order->machine_id);
             if ($machine) {
                 $machine->status = 'available';
                 $machine->save();
-                Log::info("✅ Machine #{$machine->id} unlocked after wash complete.");
-            } else {
-                Log::warning("⚠️ Machine not found for Order #{$this->orderId}");
+                Log::info("✅ Machine #{$machine->id} released from unpaid order");
             }
         }
     }

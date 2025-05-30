@@ -184,7 +184,12 @@ document.addEventListener('DOMContentLoaded', function () {
             if (result.error) {
                 document.getElementById('card-errors').textContent = result.error.message;
             } else if (result.paymentIntent.status === 'succeeded') {
-                window.location.href = "/payment/regular/success?order_ids={{ $orderIds }}";
+                @if(isset($orders))
+                    window.location.href = "/payment/regular/success?order_ids={{ $orders->pluck('id')->implode(',') }}";
+                @else
+                    window.location.href = "/payment/regular/success?order_id={{ $order->id }}";
+                @endif
+
             }
         }
     });

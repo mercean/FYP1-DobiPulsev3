@@ -23,6 +23,8 @@ use App\Http\Middleware\IsAdmin;
 Route::middleware('guest')->group(function () {
     Route::get('/', function () {
         return view('layouts.main');
+Route::post('/guest/email', [GuestController::class, 'store'])->name('guest.email.store');
+
     });
 
     Route::get('register', [RegisterController::class, 'showRegistrationForm'])->name('register');
@@ -73,6 +75,7 @@ Route::post('/notifications/mark-all-read', function () {
     Route::get('/regular-dashboard', [DashboardController::class, 'regularDashboard'])->name('regular.dashboard');
     Route::get('/transactions', [LoyaltyController::class, 'transactionHistory'])->name('transactions.history');
     Route::get('/regular/orders', [DashboardController::class, 'orders'])->name('regular.orders');
+    Route::get('/orders/{id}/receipt-pdf', [OrderController::class, 'downloadReceipt'])->name('receipt.download');
 
     // Order Flow
     Route::get('/orders/new', [OrderController::class, 'createOrder'])->name('orders.create');
@@ -138,6 +141,7 @@ Route::post('/notifications/mark-all-read', function () {
         'update' => 'promotions.update',
         'destroy' => 'promotions.destroy',
     ]);
+    
 });
     // Pages
     Route::get('services', [PageController::class, 'services'])->name('services');
