@@ -4,55 +4,7 @@
     <meta charset="UTF-8">
     <title>DobiPulse Receipt</title>
     <style>
-        body {
-            font-family: DejaVu Sans, sans-serif;
-            font-size: 13px;
-            color: #333;
-            margin: 0;
-            padding: 30px;
-        }
-
-        .container {
-            width: 600px;
-            margin: 0 auto;
-            border: 1px solid #ccc;
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .header h2 {
-            margin: 5px 0;
-            font-size: 20px;
-        }
-
-        .section {
-            margin-bottom: 20px;
-        }
-
-        .section-title {
-            font-weight: bold;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 3px;
-        }
-
-        .row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-        }
-
-        .footer {
-            font-size: 11px;
-            color: #777;
-            text-align: center;
-            border-top: 1px dashed #ccc;
-            padding-top: 10px;
-        }
+        /* ... (your existing CSS) ... */
     </style>
 </head>
 <body>

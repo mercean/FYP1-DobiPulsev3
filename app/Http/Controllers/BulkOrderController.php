@@ -7,6 +7,11 @@ use App\Models\BulkOrder;
 use Illuminate\Support\Facades\Auth;
 use Stripe\Stripe;
 use Stripe\PaymentIntent;
+use App\Models\User;
+use App\Mail\BulkOrderReceiptMail;
+use App\Notifications\BulkOrderPaidAdmin;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 
 class BulkOrderController extends Controller
 {
@@ -148,20 +153,37 @@ class BulkOrderController extends Controller
         }
     }
 
-    // Handle payment success
     public function paymentSuccess(Request $request)
     {
         $orderId = $request->query('order_id');
-        $order = BulkOrder::findOrFail($orderId);
+        $order = BulkOrder::with('user')->findOrFail($orderId);
 
-        // Mark the order as completed
-        $order->status = 'processing';
+        // ✅ Update status to 'paid'
+        $order->status = 'paid';
         $order->save();
 
-        // Log the payment success for auditing purposes
-        \Log::info("Payment successful for order ID: {$order->id}");
+        // ✅ Send receipt to bulk user's email
+        Mail::to($order->user->email)->send(new BulkOrderReceiptMail($order));
 
-        // Redirect back to the bulk orders index with a success message
-        return redirect()->route('bulk.orders.index')->with('success', 'Payment successful!');
+        // ✅ Notify all admins about paid order
+        $admins = User::where('account_type', 'admin')->get();
+        Notification::send($admins, new BulkOrderPaidAdmin($order));
+
+        // ✅ Redirect to success view
+        return view('payment.success', compact('order'));
     }
+
+
+        public function show($id)
+    {
+        $order = BulkOrder::with('user')->findOrFail($id);
+
+        // Optional: Ensure only the owner can view it
+        if (auth()->id() !== $order->user_id) {
+            abort(403); // Forbidden
+        }
+
+        return view('bulk_orders.show', compact('order'));
+    }
+
 }

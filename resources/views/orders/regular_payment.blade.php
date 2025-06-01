@@ -115,10 +115,11 @@ document.addEventListener('DOMContentLoaded', function () {
     let selectedPaymentMethod = null;
     let discount = 0;
 
-    @php
-        $firstOrderId = isset($orders) ? $orders->first()->id : $order->id;
-        $orderIds = isset($orders) ? $orders->pluck('id')->implode(',') : $order->id;
-    @endphp
+@php
+    $firstOrder = isset($orders) && $orders->isNotEmpty() ? $orders->first() : (isset($order) ? $order : null);
+    $firstOrderId = $firstOrder?->id ?? 0;
+    $orderIds = isset($orders) && $orders->isNotEmpty() ? $orders->pluck('id')->implode(',') : ($order->id ?? '');
+@endphp
 
     let cardMounted = false;
 
@@ -143,8 +144,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     cardMounted = false;
                 }
             }
+
+            // ✅ Always enable Pay button once a payment method is selected
+            payNowBtn.disabled = false;
+            payNowBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         });
     });
+
 
     document.getElementById('apply-coupon-btn').addEventListener('click', () => {
         const code = document.getElementById('coupon_code').value.trim();

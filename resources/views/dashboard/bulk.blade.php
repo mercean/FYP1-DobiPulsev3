@@ -109,17 +109,31 @@
                                         N/A
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 space-x-2">
-                                    <a href="{{ route('bulk.orders.edit', $order->id) }}" class="text-indigo-600 hover:underline">Edit</a>
-                                    <form action="{{ route('bulk.orders.destroy', $order->id) }}" method="POST" class="inline">
+                                <td class="px-6 py-4 flex items-center gap-3 flex-wrap">
+                                    <a href="{{ route('bulk.orders.edit', $order->id) }}" class="inline-flex items-center gap-1 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded">
+                                        <x-heroicon-o-pencil-square class="w-4 h-4" />
+                                        Edit
+                                    </a>
+
+                                    <form action="{{ route('bulk.orders.destroy', $order->id) }}" method="POST" onsubmit="return confirm('Are you sure?');">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:underline">Delete</button>
+                                        <button type="submit" class="inline-flex items-center gap-1 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded">
+                                            <x-heroicon-o-trash class="w-4 h-4" />
+                                            Delete
+                                        </button>
                                     </form>
+
                                     @if($order->status === 'PayNow' && $order->price > 0)
-                                        <a href="{{ route('payment.bulk.gateway', $order->id) }}" class="text-green-600 hover:underline">Pay Now</a>
+                                        <a href="{{ route('payment.bulk.gateway', $order->id) }}" class="inline-flex items-center gap-1 px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded">
+                                            <x-heroicon-o-credit-card class="w-4 h-4" />
+                                            Pay Now
+                                        </a>
                                     @elseif($order->status === 'Paid')
-                                        <span class="ml-2 text-gray-400">Paid</span>
+                                        <span class="inline-flex items-center gap-1 text-gray-400 text-xs font-semibold">
+                                            <x-heroicon-o-check-circle class="w-4 h-4" />
+                                            Paid
+                                        </span>
                                     @endif
                                 </td>
                             </tr>

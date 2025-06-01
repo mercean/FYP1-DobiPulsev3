@@ -23,7 +23,7 @@ class PromotionController extends Controller
         return view('admin.promotions.create');
     }
 
-    public function store(Request $request)
+public function store(Request $request)
 {
     $validated = $request->validate([
         'title' => 'required|string|max:255',
@@ -32,8 +32,8 @@ class PromotionController extends Controller
         'value' => 'required|numeric|min:0.01',
         'start_date' => 'required|date',
         'end_date' => 'required|date|after_or_equal:start_date',
-        'auto_apply' => 'boolean',
-        'code' => 'nullable|string|max:50',
+        'auto_apply' => 'nullable|boolean',
+        'code' => 'nullable|string|max:50|unique:promotions,code',
         'promo_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
     ]);
 
@@ -42,16 +42,21 @@ class PromotionController extends Controller
         $filename = time() . '.' . $image->getClientOriginalExtension();
         $path = storage_path('app/public/promotions/' . $filename);
 
-        // ✅ Create with GD driver
         $manager = new ImageManager(new Driver());
         $manager->read($image)->resize(800, 400)->save($path);
 
         $validated['promo_image'] = 'promotions/' . $filename;
     }
 
+    // 👇 default to false if checkbox not checked
+    $validated['auto_apply'] = $request->has('auto_apply');
+
     Promotion::create($validated);
+
     return redirect()->route('promotions.index')->with('success', 'Promotion added.');
 }
+
+
 
 
     public function destroy(Promotion $promotion)
@@ -73,8 +78,8 @@ public function update(Request $request, Promotion $promotion)
         'value' => 'required|numeric|min:0.01',
         'start_date' => 'required|date',
         'end_date' => 'required|date|after_or_equal:start_date',
-        'auto_apply' => 'boolean',
-        'code' => 'nullable|string|max:50',
+        'auto_apply' => 'nullable|boolean',
+        'code' => 'nullable|string|max:50|unique:promotions,code,' . $promotion->id,
         'promo_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
     ]);
 
@@ -89,8 +94,12 @@ public function update(Request $request, Promotion $promotion)
         $validated['promo_image'] = 'promotions/' . $filename;
     }
 
+    $validated['auto_apply'] = $request->has('auto_apply');
+
     $promotion->update($validated);
+
     return redirect()->route('promotions.index')->with('success', 'Promotion updated.');
 }
+
 
 }

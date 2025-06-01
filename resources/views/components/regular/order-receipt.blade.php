@@ -3,37 +3,37 @@
         @stack('receipt-icon')
         <h2 class="text-2xl font-bold mb-1">DobiPulse Receipt</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400">
-            Order ID: <strong>{{ $order->order_number ?? 'ORD-' . $order->id }}</strong><br>
-            Date: {{ $order->created_at->format('d M Y, h:i A') }}
+            Order ID: <strong>{{ $order->order_number ?? 'ORD-' . ($order->id ?? 'Unknown') }}</strong><br>
+            Date: {{ $order->created_at?->format('d M Y, h:i A') ?? 'N/A' }}
         </p>
     </div>
 
     <div class="border-t border-b py-4 text-sm space-y-2">
         <div class="flex justify-between">
             <span>Status:</span>
-            <span>{{ ucfirst($order->status) }}</span>
+            <span>{{ ucfirst($order->status ?? 'Unknown') }}</span>
         </div>
         <div class="flex justify-between">
             <span>Type:</span>
-            <span>{{ $order->type }}</span>
+            <span>{{ $order->type ?? 'N/A' }}</span>
         </div>
         <div class="flex justify-between">
             <span>Total Price:</span>
-            <span>RM {{ number_format($order->total_amount, 2) }}</span>
+            <span>RM {{ number_format($order->total_amount ?? 0, 2) }}</span>
         </div>
         <div class="flex justify-between">
             <span>Loyalty Points:</span>
-            <span>{{ $userPoints }} pts</span>
+            <span>{{ $userPoints ?? 0 }} pts</span>
         </div>
     </div>
 
-    @if ($order->machine)
-    <div class="mt-4 text-sm">
-        <div class="font-semibold mb-1">Machine Used</div>
-        <div class="bg-gray-100 dark:bg-gray-700 p-3 rounded">
-            Machine #{{ $order->machine->id }} – {{ ucfirst($order->machine->type) }} @ {{ $order->machine->location }}
+    @if (!empty($order->machine))
+        <div class="mt-4 text-sm">
+            <div class="font-semibold mb-1">Machine Used</div>
+            <div class="bg-gray-100 dark:bg-gray-700 p-3 rounded">
+                Machine #{{ $order->machine->id ?? '-' }} – {{ ucfirst($order->machine->type ?? '-') }} @ {{ $order->machine->location ?? '-' }}
+            </div>
         </div>
-    </div>
     @endif
 
     <div class="text-center text-xs text-gray-500 dark:text-gray-400 mt-6 border-t pt-3">

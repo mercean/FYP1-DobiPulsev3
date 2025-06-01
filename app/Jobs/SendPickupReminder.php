@@ -8,10 +8,12 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Support\Facades\Log; // ✅ Add this
 
 class SendPickupReminder implements ShouldQueue
 {
-    use InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected $bulkOrderId;
 
@@ -22,10 +24,21 @@ class SendPickupReminder implements ShouldQueue
 
     public function handle(): void
     {
+        Log::info("🔔 Handling pickup reminder for order ID: {$this->bulkOrderId}");
+
         $order = BulkOrder::with('user')->find($this->bulkOrderId);
 
-        if ($order && $order->status === 'waiting pickup') {
-            $order->user->notify(new PickupReminder($order));
+        if ($order) {
+            Log::info("🔍 Order found: ID {$order->id}, status: {$order->status}");
+
+            if ($order->status === 'waiting pickup') {
+                Log::info("✅ Sending notification to user ID: {$order->user->id}");
+                $order->user->notify(new PickupReminder($order));
+            } else {
+                Log::warning("⚠️ Order ID {$order->id} has invalid status '{$order->status}' for notification.");
+            }
+        } else {
+            Log::error("❌ Bulk order with ID {$this->bulkOrderId} not found.");
         }
     }
 }

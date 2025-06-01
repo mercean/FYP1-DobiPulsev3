@@ -14,28 +14,43 @@ use League\Csv\Writer; // Add this line at the top of your controller
 use Illuminate\Http\Response;
 use App\Jobs\SendPickupReminder; // ⬅️ Add this at the top
 use Carbon\Carbon;
+use App\Models\Promotion;
+
 
 
 
 class AdminDashboardController extends Controller
 {
-   public function index(Request $request)
+public function index(Request $request)
 {
     $status = $request->input('status');
+    $search = $request->input('search');
 
+    // Unified query with status + search filters
     $bulkOrdersQuery = BulkOrder::with('user');
     if ($status) {
         $bulkOrdersQuery->where('status', $status);
     }
-    $bulkOrders = $bulkOrdersQuery->get();
+    if ($search) {
+        $bulkOrdersQuery->where(function ($query) use ($search) {
+            $query->where('id', 'like', "%$search%")
+                  ->orWhereHas('user', function ($q) use ($search) {
+                      $q->where('name', 'like', "%$search%");
+                  });
+        });
+    }
 
+    // Use paginate instead of get for performance
+    $bulkOrders = $bulkOrdersQuery->paginate(10);
+
+    $orders = Order::all();
     $totalUsers = User::count();
     $totalOrders = Order::count();
     $totalBulkOrders = BulkOrder::count();
 
     $statusDistribution = BulkOrder::select('status', \DB::raw('count(*) as count'))
-                                  ->groupBy('status')
-                                  ->get();
+        ->groupBy('status')
+        ->get();
 
     $totalProcessedOrders = BulkOrder::where('status', 'completed')->count();
     $orderCompletionRate = $totalOrders > 0 ? ($totalProcessedOrders / $totalOrders) * 100 : 0;
@@ -47,94 +62,85 @@ class AdminDashboardController extends Controller
         })
         ->avg();
 
-    $search = $request->input('search');
-
-    $bulkOrdersQuery = BulkOrder::with('user');
-    if ($search) {
-        $bulkOrdersQuery->where(function($query) use ($search) {
-            $query->where('id', 'like', "%$search%")
-                  ->orWhereHas('user', function($q) use ($search) {
-                      $q->where('name', 'like', "%$search%");
-                  });
-        });
-    }
-    $bulkOrders = $bulkOrdersQuery->get();
-
-    $orders = Order::all();
-
     $usersQuery = User::query();
     if ($search) {
-        $usersQuery->where(function($query) use ($search) {
+        $usersQuery->where(function ($query) use ($search) {
             $query->where('name', 'like', "%$search%")
                   ->orWhere('email', 'like', "%$search%");
         });
     }
     $users = $usersQuery->get();
 
-    // ✅ ADD THIS WEEKLY USAGE LOGIC HERE
+    // Weekly usage
     $startOfWeek = Carbon::now()->startOfWeek();
     $dailyLabels = [];
     $dailyCounts = [];
     for ($i = 0; $i < 7; $i++) {
         $day = $startOfWeek->copy()->addDays($i);
-        $dailyLabels[] = $day->translatedFormat('D'); // Mon, Tue, ...
+        $dailyLabels[] = $day->translatedFormat('D');
         $dailyCounts[] = Order::whereDate('created_at', $day)->count();
     }
 
-    // ✅ Now include them in your view
+    $promotions = Promotion::all();
+
     return view('admin.dashboard', compact(
-        'totalUsers', 
-        'totalOrders', 
-        'totalBulkOrders', 
-        'orders', 
-        'bulkOrders', 
+        'totalUsers',
+        'totalOrders',
+        'totalBulkOrders',
+        'orders',
+        'bulkOrders',
         'users',
         'statusDistribution',
         'orderCompletionRate',
         'avgTimeToCompleteOrders',
         'dailyLabels',
-        'dailyCounts' // ✅ Important
+        'dailyCounts',
+        'promotions'
     ));
 }
 
-    
+public function updateOrderStatus($id, $type, Request $request)
+{
+    $bulkOrder = BulkOrder::findOrFail($id);
 
-    public function updateOrderStatus($id, $type, Request $request)
-    {
-        // Fetch the bulk order
-        $bulkOrder = BulkOrder::findOrFail($id);
-        
-        // If a price is being updated, set the new price
-        if ($request->has('price')) {
-            $price = $request->input('price');
-            $bulkOrder->price = $price;
+    // Handle price update
+    if ($request->has('price')) {
+        $price = $request->input('price');
+        $bulkOrder->price = $price;
+        $bulkOrder->save();
+
+        if ($price > 0) {
+            $bulkOrder->status = 'PayNow';
             $bulkOrder->save();
-    
-            // If price is updated, automatically set status to 'PayNow'
-            if ($price > 0) {
-                $bulkOrder->status = 'PayNow';
-                $bulkOrder->save();
-                \Log::info("Order ID: {$bulkOrder->id} status updated to PayNow");
-                return redirect()->route('admin.dashboard')->with('status', 'Price updated and status set to PayNow!');
+            \Log::info("Order ID: {$bulkOrder->id} status updated to PayNow");
+            return redirect()->route('admin.dashboard')->with('status', 'Price updated and status set to PayNow!');
+        }
+    }
+
+    // Handle status update
+    $status = $request->input('status');
+    if ($status && $status !== $bulkOrder->status) {
+        $bulkOrder->status = $status;
+        $bulkOrder->save();
+        \Log::info("Order ID: {$bulkOrder->id} status updated to {$status}");
+
+        if ($status === 'paid') {
+            $adminUsers = User::where('account_type', 'admin')->get();
+            foreach ($adminUsers as $admin) {
+                $admin->notify(new \App\Notifications\BulkOrderPaidAdmin($bulkOrder));
             }
         }
-    
-        // If status is being updated
-        $status = $request->input('status');
-        if ($status && $status !== $bulkOrder->status) {
-            $bulkOrder->status = $status;
-            $bulkOrder->save();
-            \Log::info("Order ID: {$bulkOrder->id} status updated to {$status}");
 
-             // ✅ Dispatch pickup reminder if status is "waiting pickup"
-            if ($status === 'waiting pickup') {
-                SendPickupReminder::dispatch($bulkOrder->id)->delay(now()->addMinutes(30)); // or any delay
-                }
-    
+        if ($status === 'waiting pickup') {
+            SendPickupReminder::dispatch($bulkOrder->id)->delay(now()->addMinutes(30));
+        }
+
         return redirect()->route('admin.dashboard')->with('status', 'Order status updated!');
-            }
     }
-    
+
+    return redirect()->route('admin.dashboard')->with('status', 'No changes applied.');
+}
+
     
     
     

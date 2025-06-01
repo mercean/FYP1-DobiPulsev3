@@ -81,6 +81,13 @@
             <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6">
                 <h3 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">🧾 Session Summary</h3>
                 <div id="cart_summary" class="space-y-4"></div>
+               
+                @guest
+                <div class="mt-6">
+                    <label for="guest_email" class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Email for Receipt (Guests only)</label>
+                    <input type="email" name="guest_email" id="guest_email" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+                </div>
+                @endguest
 
                 <input type="hidden" name="total_price" id="total_price_input">
                 <button type="submit" class="mt-4 w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded disabled:opacity-50" id="checkout_btn" disabled>

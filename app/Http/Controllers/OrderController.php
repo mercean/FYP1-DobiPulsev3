@@ -73,6 +73,7 @@ class OrderController extends Controller
 
             // Generate order
             $orderNumber = 'ORD-' . strtoupper(Str::random(6));
+            $guestEmail = $request->input('guest_email');
 
             $order = Order::create([
                 'user_id'       => $userId,
@@ -80,8 +81,11 @@ class OrderController extends Controller
                 'machine_id'    => $machineId,
                 'required_time' => $time,
                 'total_amount'  => $price,
+                'guest_email'   => $guestEmail, // <-- Add this
                 'status'        => 'pending',
             ]);
+
+
 
             // Dispatch timeout job to unlock after 30s if unpaid
             ExpireUnpaidOrder::dispatch($order->id)->delay(now()->addSeconds(30));
@@ -92,8 +96,13 @@ class OrderController extends Controller
         // Convert array of order IDs to comma-separated string
         $orderIds = collect($orders)->pluck('id')->implode(',');
 
-        // Redirect to multi-order payment page
-        return redirect()->route('payment.regular.multi', ['order_ids' => $orderIds]);
+        if (auth()->check()) {
+            return redirect()->route('payment.regular.multi', ['order_ids' => $orderIds]);
+        } else {
+            return redirect()->route('payment.guest.multi', ['order_ids' => $orderIds]);
+        }
+
+
     }
 
     public function destroy($id)

@@ -214,6 +214,11 @@
 
 
 
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+    lucide.createIcons();
+</script>
+
 @yield('scripts')
 @stack('scripts')
 </body>

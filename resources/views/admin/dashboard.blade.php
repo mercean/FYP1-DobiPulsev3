@@ -15,7 +15,7 @@
 <!-- Stats Cards -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
     <div class="rounded-xl bg-blue-50 dark:bg-gray-800 p-6 shadow flex items-center gap-4">
-        <x-heroicon-o-user-group class="w-10 h-10 text-blue-500 dark:text-blue-400" />
+        <x-lucide-users class="w-10 h-10 text-blue-500 dark:text-blue-400" />
         <div>
             <div class="text-sm text-gray-600 dark:text-gray-400">Total Users</div>
             <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ $totalUsers }}</div>
@@ -23,7 +23,7 @@
     </div>
 
     <div class="rounded-xl bg-green-50 dark:bg-gray-800 p-6 shadow flex items-center gap-4">
-        <x-heroicon-o-archive-box class="w-10 h-10 text-green-500 dark:text-green-400" />
+        <x-lucide-package class="w-10 h-10 text-green-500 dark:text-green-400" />
         <div>
             <div class="text-sm text-gray-600 dark:text-gray-400">Bulk Orders</div>
             <div class="text-3xl font-bold text-green-600 dark:text-green-400">{{ $totalBulkOrders }}</div>
@@ -31,13 +31,37 @@
     </div>
 
     <div class="rounded-xl bg-purple-50 dark:bg-gray-800 p-6 shadow flex items-center gap-4">
-        <x-heroicon-o-clipboard-document-list class="w-10 h-10 text-purple-500 dark:text-purple-400" />
+        <x-lucide-file-text class="w-10 h-10 text-purple-500 dark:text-purple-400" />
         <div>
             <div class="text-sm text-gray-600 dark:text-gray-400">Normal Orders</div>
             <div class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ $totalOrders }}</div>
         </div>
     </div>
 </div>
+
+<!-- Fix dark mode text inside input and select fields -->
+<style>
+    input,
+    select,
+    textarea {
+        color: black;
+    }
+
+    .dark input,
+    .dark select,
+    .dark textarea {
+        background-color: #374151 !important;
+        color: white !important;
+        border-color: #4b5563 !important;
+    }
+
+    .dark input::placeholder,
+    .dark textarea::placeholder {
+        color: #9CA3AF !important;
+    }
+</style>
+
+
 
 
     <!-- Charts -->
@@ -89,7 +113,11 @@
     <button @click="activeTab = 'users'" :class="activeTab === 'users' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white'" class="px-4 py-2 rounded">
         <x-heroicon-o-users class="inline w-5 h-5 mr-1" /> User Management
     </button>
+        <button @click="activeTab = 'promotions'" :class="activeTab === 'promotions' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white'" class="px-4 py-2 rounded">
+        <x-heroicon-o-megaphone class="inline w-5 h-5 mr-1" /> Promotions
+    </button>
 </div>
+
 
 
 <!-- Normal Orders Table -->
@@ -177,6 +205,7 @@
                                     <select name="status" class="rounded px-2 py-1">
                                         @foreach(['pending','approved','PayNow','paid','processing','waiting pickup','finished'] as $status)
                                             <option value="{{ $status }}" {{ $bulkOrder->status == $status ? 'selected' : '' }}>{{ ucfirst($status) }}</option>
+                                            
                                         @endforeach
                                     </select>
                                     <button class="ml-2 bg-blue-600 text-white px-2 py-1 rounded">Update</button>
@@ -192,7 +221,20 @@
             </div>
         </div>
     </div>
-
+    <!-- Promotions Tab Section -->
+    <div x-show="activeTab === 'promotions'" x-cloak class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-gray-800 dark:text-white">🎉 Active Promotions</h2>
+            <a href="{{ route('promotions.index') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Manage Promotions</a>
+        </div>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300">
+            @forelse ($promotions->filter(fn($p) => now()->between($p->start_date, $p->end_date)) as $promo)
+                <li><strong>{{ $promo->title }}</strong> - {{ $promo->type === 'percent' ? $promo->value . '%' : 'RM' . number_format($promo->value, 2) }} off until {{ $promo->end_date->format('d M Y') }}</li>
+            @empty
+                <li>No active promotions currently.</li>
+            @endforelse
+        </ul>
+    </div>
     <!-- User Management -->
     <div x-show="activeTab === 'users'" x-cloak class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 mb-10">
         <div class="flex justify-between items-center mb-4">
